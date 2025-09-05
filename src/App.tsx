@@ -4,6 +4,7 @@ import { api } from "../convex/_generated/api";
 import RoundStartModal from "./components/RoundStartModal";
 import RoundCompleteModal from "./components/RoundCompleteModal";
 import RoundSettings from "./components/RoundSettings";
+import FocusFlashcard from "./components/FocusFlashcard";
 import "./App.css";
 
 function msFmt(ms: number | null | undefined) {
@@ -42,6 +43,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("focusMode", focusMode.toString());
   }, [focusMode]);
+
+  // Streak tracking
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [sessionAccuracy, setSessionAccuracy] = useState<number>(100);
+  const [sessionAttempts, setSessionAttempts] = useState<number>(0);
+  const [sessionCorrect, setSessionCorrect] = useState<number>(0);
 
   // Modal states
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
@@ -153,17 +160,58 @@ export default function App() {
       await recordAttempt({ wordId: currentWord._id, correct: true, timeMs });
     }
 
+    // Update streak and accuracy - only increment streak if time limit is met
+    const maxTime = roundState?.round?.maxTimeMs;
+    const metTimeLimit = !maxTime || timeMs <= maxTime;
+
+    if (metTimeLimit) {
+      setCurrentStreak(prev => prev + 1);
+    } else {
+      setCurrentStreak(0); // Reset streak if time limit exceeded
+    }
+
+    setSessionAttempts(prev => prev + 1);
+    setSessionCorrect(prev => prev + 1);
+    setSessionAccuracy(prev => {
+      const newCorrect = sessionCorrect + 1;
+      const newAttempts = sessionAttempts + 1;
+      return Math.round((newCorrect / newAttempts) * 100);
+    });
+
     // Flip out, then change word, then flip in
     setFlipping(true);
     setTimeout(() => {
       goToRandomWord();
       setFlipping(false);
     }, 220); // should match CSS transition duration
-  }, [currentWord, activeRoundId, recordRound, recordAttempt, goToRandomWord, setFlipping]);
+  }, [currentWord, activeRoundId, recordRound, recordAttempt, goToRandomWord, setFlipping, sessionCorrect, sessionAttempts, roundState]);
 
   const onReset = () => {
     startTimer();
   };
+
+  // Function to handle incorrect answers (resets streak)
+  const onIncorrect = useCallback(async () => {
+    if (!currentWord) return;
+    const timeMs = Date.now() - startRef.current;
+
+    if (activeRoundId) {
+      await recordRound({ roundId: activeRoundId as any, wordId: currentWord._id, timeMs, correct: false });
+    } else {
+      await recordAttempt({ wordId: currentWord._id, correct: false, timeMs });
+    }
+
+    // Reset streak on incorrect answer
+    setCurrentStreak(0);
+    setSessionAttempts(prev => prev + 1);
+    // Don't increment sessionCorrect for wrong answers
+    setSessionAccuracy(prev => {
+      const newAttempts = sessionAttempts + 1;
+      return Math.round((sessionCorrect / newAttempts) * 100);
+    });
+
+    startTimer(); // Reset timer for next attempt
+  }, [currentWord, activeRoundId, recordRound, recordAttempt, sessionCorrect, sessionAttempts]);
 
   // Modal handlers
   const handleRoundStart = async () => {
@@ -177,6 +225,13 @@ export default function App() {
 
     setActiveRoundId(rid as any);
     setFocusMode(true); // Automatically enable focus mode when starting a round
+
+    // Reset session stats
+    setCurrentStreak(0);
+    setSessionAccuracy(100);
+    setSessionAttempts(0);
+    setSessionCorrect(0);
+
     goToRandomWord();
     setPendingRoundSettings(null);
   };
@@ -239,40 +294,53 @@ export default function App() {
 
       <div className="leftPane">
         <h1>Flashcard</h1>
-        {currentWord ? (
-          <div className={`flashcard ${flipping ? "flipping" : ""}`}>
-            {activeRoundId && roundState && (
-              <div className="roundHUD">
-                {isRoundComplete ? (
-                  <span style={{ color: 'green', fontWeight: 'bold' }}>🎉 Round Complete!</span>
-                ) : (
-                  <>
-                    Round • {roundState.solved}/{roundState.total} solved
-                    {roundState.round?.repsPerWord && (
-                      <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                        Goal: {roundState.round.repsPerWord} reps per word
-                        {roundState.round.maxTimeMs && ` under ${roundState.round.maxTimeMs}ms`}
-                      </div>
-                    )}
-                  </>
-                )}
+{currentWord ? (
+          focusMode && activeRoundId ? (
+            <FocusFlashcard
+              word={currentWord.text}
+              elapsedMs={elapsedMs}
+              onNext={onNext}
+              onReset={onReset}
+              flipping={flipping}
+              roundState={roundState}
+              isRoundComplete={!!isRoundComplete}
+              streak={currentStreak}
+            />
+          ) : (
+            <div className={`flashcard ${flipping ? "flipping" : ""}`}>
+              {activeRoundId && roundState && (
+                <div className="roundHUD">
+                  {isRoundComplete ? (
+                    <span style={{ color: 'green', fontWeight: 'bold' }}>🎉 Round Complete!</span>
+                  ) : (
+                    <>
+                      Round • {roundState.solved}/{roundState.total} solved
+                      {roundState.round?.repsPerWord && (
+                        <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                          Goal: {roundState.round.repsPerWord} reps per word
+                          {roundState.round.maxTimeMs && ` under ${roundState.round.maxTimeMs}ms`}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              <div className="word">{currentWord.text}</div>
+              <div className="timer">{msFmt(elapsedMs)}</div>
+              <div className="actions">
+                <button
+                  className="next"
+                  onClick={onNext}
+                  title="Click or press Spacebar"
+                >
+                  Next <span className="keyboard-hint">⎵</span>
+                </button>
+                <button className="reset" onClick={onReset}>
+                  Reset
+                </button>
               </div>
-            )}
-            <div className="word">{currentWord.text}</div>
-            <div className="timer">{msFmt(elapsedMs)}</div>
-            <div className="actions">
-              <button
-                className="next"
-                onClick={onNext}
-                title="Click or press Spacebar"
-              >
-                Next <span className="keyboard-hint">⎵</span>
-              </button>
-              <button className="reset" onClick={onReset}>
-                Reset
-              </button>
             </div>
-          </div>
+          )
         ) : (
           <p>Add words to begin.</p>
         )}
