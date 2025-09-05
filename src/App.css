@@ -4,15 +4,72 @@
   gap: 24px;
   padding: 24px;
   align-items: start;
+  transition: grid-template-columns 0.3s ease;
 }
 
-.themeToggle {
+/* Focus mode: hide right pane on larger screens, stack on smaller */
+.layout.focus-mode {
+  grid-template-columns: 1fr 0fr;
+}
+
+.layout.focus-mode .rightPane {
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* On smaller screens, always stack vertically */
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .layout.focus-mode {
+    grid-template-columns: 1fr;
+  }
+
+  .layout.focus-mode .rightPane {
+    display: none;
+  }
+}
+
+.topControls {
   position: fixed;
   top: 12px;
   right: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+}
+
+.themeToggle, .focusToggle {
   background: var(--panel-bg);
   color: var(--panel-text);
   border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.themeToggle:hover, .focusToggle:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.focusToggle {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.layout.focus-mode .focusToggle {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 .leftPane, .rightPane {
@@ -69,6 +126,16 @@
 
 .actions .next { background: var(--accent); color: #fff; border-color: var(--accent); }
 .actions .reset { background: transparent; color: var(--panel-text); border: 1px solid var(--border); }
+
+.keyboard-hint {
+  opacity: 0.7;
+  font-size: 14px;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-family: monospace;
+}
 
 .addRow {
   display: flex;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import "./App.css";
@@ -33,6 +33,12 @@ export default function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  // Focus mode toggle
+  const [focusMode, setFocusMode] = useState<boolean>(() => localStorage.getItem("focusMode") === "true");
+  useEffect(() => {
+    localStorage.setItem("focusMode", focusMode.toString());
+  }, [focusMode]);
 
   // Quick-add form
   const [newWord, setNewWord] = useState("");
@@ -126,7 +132,7 @@ export default function App() {
     }
   }, [isRoundComplete, roundState?.solved, roundState?.total]);
 
-  const onNext = async () => {
+  const onNext = useCallback(async () => {
     if (!currentWord) return;
     const timeMs = Date.now() - startRef.current;
 
@@ -142,22 +148,58 @@ export default function App() {
       goToRandomWord();
       setFlipping(false);
     }, 220); // should match CSS transition duration
-  };
+  }, [currentWord, activeRoundId, recordRound, recordAttempt, goToRandomWord, setFlipping]);
 
   const onReset = () => {
     startTimer();
   };
 
+  // Spacebar keyboard shortcut for Next button
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only trigger on spacebar
+      if (event.code !== 'Space') return;
+
+      // Don't trigger if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Don't trigger if no current word
+      if (!currentWord) return;
+
+      // Prevent default spacebar behavior (page scroll)
+      event.preventDefault();
+
+      // Trigger the Next button
+      onNext();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentWord, onNext]);
+
   return (
-    <div className="layout">
-      <button
-        className="themeToggle"
-        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        aria-label="Toggle theme"
-        title="Toggle theme"
-      >
-        {theme === "light" ? "Dark" : "Light"}
-      </button>
+    <div className={`layout ${focusMode ? "focus-mode" : ""}`}>
+      <div className="topControls">
+        <button
+          className="themeToggle"
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          aria-label="Toggle theme"
+          title="Toggle theme"
+        >
+          {theme === "light" ? "Dark" : "Light"}
+        </button>
+        <button
+          className="focusToggle"
+          onClick={() => setFocusMode(!focusMode)}
+          aria-label="Toggle focus mode"
+          title="Toggle focus mode"
+        >
+          {focusMode ? "Exit Focus" : "Focus"}
+        </button>
+      </div>
 
       <div className="leftPane">
         <h1>Flashcard</h1>
@@ -183,8 +225,12 @@ export default function App() {
             <div className="word">{currentWord.text}</div>
             <div className="timer">{msFmt(elapsedMs)}</div>
             <div className="actions">
-              <button className="next" onClick={onNext}>
-                Next
+              <button
+                className="next"
+                onClick={onNext}
+                title="Click or press Spacebar"
+              >
+                Next <span className="keyboard-hint">⎵</span>
               </button>
               <button className="reset" onClick={onReset}>
                 Reset
@@ -223,11 +269,15 @@ export default function App() {
               const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
               const rid = await startRound({ wordIds: ids, repsPerWord, maxTimeMs: maxMs } as any);
               setActiveRoundId(rid as any);
+              setFocusMode(true); // Automatically enable focus mode when starting a round
               goToRandomWord();
               alert(`🚀 Round started! Goal: ${repsPerWord} correct attempts per word${maxMs ? ` under ${maxMs}ms` : ''}`);
             }}>Start round</button>
           ) : isRoundComplete ? (
-            <button onClick={() => setActiveRoundId(null)} style={{ background: 'green', color: 'white' }}>
+            <button onClick={() => {
+              setActiveRoundId(null);
+              // Keep focus mode as user preference when round completes
+            }} style={{ background: 'green', color: 'white' }}>
               🎉 Round Complete - Start New Round
             </button>
           ) : (
