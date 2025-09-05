@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import RoundStartModal from "./components/RoundStartModal";
 import RoundCompleteModal from "./components/RoundCompleteModal";
+import RoundSettings from "./components/RoundSettings";
 import "./App.css";
 
 function msFmt(ms: number | null | undefined) {
@@ -290,37 +291,31 @@ export default function App() {
         </form>
         {error && <div className="error">{error}</div>}
 
-        {/* Rounds and reset controls */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-          <input type="number" min={1} value={repsPerWord} onChange={e => setRepsPerWord(+e.target.value)} placeholder="Reps/word" aria-label="Repetitions per word" />
-          <input type="number" min={0} value={maxTimeMs} onChange={e => setMaxTimeMs(e.target.value)} placeholder="Max ms (optional)" aria-label="Max time in ms" />
-          {!activeRoundId ? (
-            <button onClick={() => {
-              if (words.length === 0) {
-                alert("Add some words first!");
-                return;
-              }
-              const ids = words.map((w: any) => w._id);
-              const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
-              setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
-              setShowRoundStartModal(true);
-            }}>Start round</button>
-          ) : isRoundComplete ? (
-            <button onClick={() => {
+        <RoundSettings
+          repsPerWord={repsPerWord}
+          setRepsPerWord={setRepsPerWord}
+          maxTimeMs={maxTimeMs}
+          setMaxTimeMs={setMaxTimeMs}
+          activeRoundId={activeRoundId}
+          isRoundComplete={!!isRoundComplete}
+          onStartRound={() => {
+            const ids = words.map((w: any) => w._id);
+            const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
+            setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
+            setShowRoundStartModal(true);
+          }}
+          onEndRound={() => {
+            if (confirm("Are you sure you want to end this round early?")) {
               setActiveRoundId(null);
-              // Keep focus mode as user preference when round completes
-            }} style={{ background: 'green', color: 'white' }}>
-              🎉 Round Complete - Start New Round
-            </button>
-          ) : (
-            <button onClick={() => {
-              if (confirm("Are you sure you want to end this round early?")) {
-                setActiveRoundId(null);
-              }
-            }}>End round early</button>
-          )}
-          <button onClick={() => resetStats({} as any)}>Reset all results</button>
-        </div>
+            }
+          }}
+          onCompleteRound={() => {
+            setActiveRoundId(null);
+            // Keep focus mode as user preference when round completes
+          }}
+          onResetStats={() => resetStats({} as any)}
+          wordsCount={words.length}
+        />
 
         <div className="tableWrap">
           <table>

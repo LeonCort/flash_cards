@@ -37,28 +37,58 @@
 
 .topControls {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  top: 16px;
+  right: 16px;
   display: flex;
   gap: 8px;
   z-index: 100;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px;
 }
 
 .themeToggle, .focusToggle {
   background: var(--panel-bg);
   color: var(--panel-text);
   border: 1px solid var(--border);
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 80px;
+  text-align: center;
+}
+
+.themeToggle::before, .focusToggle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.themeToggle:hover::before, .focusToggle:hover::before {
+  width: 100px;
+  height: 100px;
 }
 
 .themeToggle:hover, .focusToggle:hover {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .focusToggle {
@@ -72,6 +102,11 @@
   border-color: #dc2626;
 }
 
+.layout.focus-mode .focusToggle:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
 .leftPane, .rightPane {
   background: var(--panel-bg);
   color: var(--panel-text);
@@ -83,15 +118,25 @@
 
 .flashcard {
   perspective: 1000px;
+  position: relative;
 }
 
 .flashcard.flipping .word {
   transform: rotateY(90deg);
 }
 
+.flashcard.correct {
+  animation: correctFlash 0.6s ease;
+}
+
+.flashcard.incorrect {
+  animation: incorrectShake 0.6s ease;
+}
+
 .word {
   transition: transform 200ms ease;
   transform-style: preserve-3d;
+  position: relative;
 }
 
 .flashcard .word {
@@ -99,6 +144,39 @@
   font-weight: 700;
   text-align: center;
   margin: 20px 0 8px;
+  background: linear-gradient(135deg, var(--panel-text), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Flashcard animations */
+@keyframes correctFlash {
+  0%, 100% { background: var(--panel-bg); }
+  50% { background: rgba(16, 185, 129, 0.1); }
+}
+
+@keyframes incorrectShake {
+  0%, 100% { transform: translateX(0); background: var(--panel-bg); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); background: rgba(239, 68, 68, 0.1); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Success celebration */
+.flashcard.celebration::after {
+  content: '🎉';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  font-size: 32px;
+  animation: celebrate 1s ease;
+}
+
+@keyframes celebrate {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg); opacity: 0; }
 }
 
 .flashcard .timer {
@@ -122,10 +200,68 @@
   cursor: pointer;
   background: var(--panel-bg);
   color: var(--panel-text);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  font-weight: 600;
 }
 
-.actions .next { background: var(--accent); color: #fff; border-color: var(--accent); }
-.actions .reset { background: transparent; color: var(--panel-text); border: 1px solid var(--border); }
+.actions button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.actions button:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.actions button:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+.actions .next {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+.actions .next:hover {
+  background: #2563eb;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.actions .reset {
+  background: transparent;
+  color: var(--panel-text);
+  border: 1px solid var(--border);
+}
+
+.actions .reset:hover {
+  background: var(--border);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
 
 .keyboard-hint {
   opacity: 0.7;
@@ -145,20 +281,79 @@
 
 .addRow input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border: 2px solid var(--border);
   border-radius: 8px;
   background: var(--panel-bg);
   color: var(--panel-text);
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.addRow input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.addRow input:hover {
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .addRow button {
-  padding: 10px 14px;
-  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border: 2px solid var(--accent);
   border-radius: 8px;
   background: var(--accent);
   color: white;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.addRow button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.addRow button:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.addRow button:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+}
+
+.addRow button:active {
+  transform: translateY(0) scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+.addRow button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.addRow button:disabled:hover {
+  background: var(--accent);
+  transform: none;
+  box-shadow: none;
 }
 
 .error {
@@ -171,10 +366,177 @@
   overflow: auto;
 }
 
-table { width: 100%; border-collapse: collapse; background: var(--panel-bg); color: var(--panel-text); }
-th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border-radius: 8px;
+  overflow: hidden;
+}
 
-thead th { position: sticky; top: 0; background: rgba(0,0,0,0.02); }
-:root[data-theme="dark"] thead th { background: rgba(255,255,255,0.04); }
+th, td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.02);
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] thead th {
+  background: rgba(255,255,255,0.04);
+}
+
+tbody tr {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: rgba(59, 130, 246, 0.05);
+  transform: translateX(2px);
+}
+
+tbody tr:hover td {
+  color: var(--accent);
+}
+
+/* Performance color coding */
+tbody tr[data-performance="perfect"] {
+  border-left: 3px solid #10b981;
+}
+
+tbody tr[data-performance="good"] {
+  border-left: 3px solid #f59e0b;
+}
+
+tbody tr[data-performance="needs-work"] {
+  border-left: 3px solid #ef4444;
+}
+
+/* Stats styling */
+td[data-stat="percentage"] {
+  font-weight: 600;
+}
+
+td[data-stat="percentage"][data-value="100"] {
+  color: #10b981;
+}
+
+td[data-stat="percentage"][data-value="partial"] {
+  color: #f59e0b;
+}
+
+td[data-stat="percentage"][data-value="low"] {
+  color: #ef4444;
+}
 
 .roundHUD { margin-bottom: 8px; color: var(--muted); font-weight: 600; }
+
+/* Loading states and skeletons */
+.loading-skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, rgba(255, 255, 255, 0.1) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+.loading-word {
+  height: 64px;
+  width: 200px;
+  margin: 20px auto 8px;
+}
+
+.loading-timer {
+  height: 24px;
+  width: 80px;
+  margin: 0 auto 16px;
+}
+
+.loading-table-row {
+  height: 20px;
+  margin: 8px 0;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Success states */
+.success-flash {
+  animation: successPulse 0.6s ease;
+}
+
+@keyframes successPulse {
+  0%, 100% {
+    background: var(--panel-bg);
+  }
+  50% {
+    background: rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  }
+}
+
+/* Error states */
+.error-shake {
+  animation: errorShake 0.6s ease;
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+    background: var(--panel-bg);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-3px);
+    background: rgba(239, 68, 68, 0.1);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(3px);
+  }
+}
+
+/* Floating action button */
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  z-index: 99;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
