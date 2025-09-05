@@ -1,0 +1,276 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
+import "./App.css";
+
+function msFmt(ms: number | null | undefined) {
+  if (ms == null) return "—";
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+export default function App() {
+  const words = useQuery(api.words.listWithStats) ?? [];
+  const addWord = useMutation(api.words.add);
+  const recordAttempt = useMutation(api.attempts.record);
+
+  // Resets and rounds
+  const resetStats = useMutation(api.words.resetStats);
+  const startRound = useMutation(api.rounds?.start as any);
+  const recordRound = useMutation(api.rounds?.record as any);
+
+  const [activeRoundId, setActiveRoundId] = useState<string | null>(null);
+  const roundState = useQuery(
+    (api as any).rounds?.get,
+    { roundId: activeRoundId }
+  ) as any;
+
+  const [repsPerWord, setRepsPerWord] = useState<number>(3);
+  const [maxTimeMs, setMaxTimeMs] = useState<string>("");
+
+  // Theme toggle
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem("theme") ?? "light");
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  // Quick-add form
+  const [newWord, setNewWord] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const onAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const text = newWord.trim();
+    if (!text) return;
+    try {
+      await addWord({ text });
+      setNewWord("");
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to add word");
+    }
+  };
+
+  // Current flashcard
+  const activeWords = words;
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const currentWord = useMemo(
+    () => activeWords.find(w => w._id === currentId) ?? null,
+    [activeWords, currentId]
+  );
+
+  // Timer
+  const [now, setNow] = useState<number>(Date.now());
+  const startRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(t);
+  }, []);
+
+  const startTimer = () => {
+    startRef.current = Date.now();
+  };
+
+  const elapsedMs = now - startRef.current;
+
+  const chooseRandomWordId = () => {
+    if (activeWords.length === 0) return null;
+    const next = activeWords[Math.floor(Math.random() * activeWords.length)];
+    return next._id as string;
+  };
+
+  // Prefer unsolved words when a round is active
+  const chooseNextWordId = () => {
+    if (activeRoundId && roundState?.items?.length) {
+      const unsolved = roundState.items.filter((i: any) => !i.solved);
+      if (unsolved.length) {
+        const pick = unsolved[Math.floor(Math.random() * unsolved.length)];
+        return pick.wordId as string;
+      }
+    }
+    return chooseRandomWordId();
+  };
+
+  const goToRandomWord = () => {
+    const id = chooseNextWordId();
+    if (!id) {
+      setCurrentId(null);
+      return;
+    }
+    setCurrentId(id);
+    startTimer();
+  };
+
+  useEffect(() => {
+    // Pick an initial word once words arrive
+    if (currentId === null && activeWords.length > 0) {
+      goToRandomWord();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWords.length]);
+
+  // Flip animation state
+  const [flipping, setFlipping] = useState(false);
+
+  // Check if round is complete
+  const isRoundComplete = activeRoundId && roundState?.round?.status === "done";
+
+  // Auto-end completed rounds
+  useEffect(() => {
+    if (isRoundComplete) {
+      setTimeout(() => {
+        alert(`🎉 Round Complete! You solved ${roundState.solved}/${roundState.total} words!`);
+        setActiveRoundId(null);
+      }, 500);
+    }
+  }, [isRoundComplete, roundState?.solved, roundState?.total]);
+
+  const onNext = async () => {
+    if (!currentWord) return;
+    const timeMs = Date.now() - startRef.current;
+
+    if (activeRoundId) {
+      await recordRound({ roundId: activeRoundId as any, wordId: currentWord._id, timeMs, correct: true });
+    } else {
+      await recordAttempt({ wordId: currentWord._id, correct: true, timeMs });
+    }
+
+    // Flip out, then change word, then flip in
+    setFlipping(true);
+    setTimeout(() => {
+      goToRandomWord();
+      setFlipping(false);
+    }, 220); // should match CSS transition duration
+  };
+
+  const onReset = () => {
+    startTimer();
+  };
+
+  return (
+    <div className="layout">
+      <button
+        className="themeToggle"
+        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        aria-label="Toggle theme"
+        title="Toggle theme"
+      >
+        {theme === "light" ? "Dark" : "Light"}
+      </button>
+
+      <div className="leftPane">
+        <h1>Flashcard</h1>
+        {currentWord ? (
+          <div className={`flashcard ${flipping ? "flipping" : ""}`}>
+            {activeRoundId && roundState && (
+              <div className="roundHUD">
+                {isRoundComplete ? (
+                  <span style={{ color: 'green', fontWeight: 'bold' }}>🎉 Round Complete!</span>
+                ) : (
+                  <>
+                    Round • {roundState.solved}/{roundState.total} solved
+                    {roundState.round?.repsPerWord && (
+                      <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                        Goal: {roundState.round.repsPerWord} reps per word
+                        {roundState.round.maxTimeMs && ` under ${roundState.round.maxTimeMs}ms`}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            <div className="word">{currentWord.text}</div>
+            <div className="timer">{msFmt(elapsedMs)}</div>
+            <div className="actions">
+              <button className="next" onClick={onNext}>
+                Next
+              </button>
+              <button className="reset" onClick={onReset}>
+                Reset
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p>Add words to begin.</p>
+        )}
+      </div>
+
+      <div className="rightPane">
+        <h2>Dictionary</h2>
+        <form className="addRow" onSubmit={onAdd}>
+          <input
+            placeholder="Add a word"
+            value={newWord}
+            onChange={e => setNewWord(e.target.value)}
+            aria-label="New word"
+          />
+          <button type="submit">Add</button>
+        </form>
+        {error && <div className="error">{error}</div>}
+
+        {/* Rounds and reset controls */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <input type="number" min={1} value={repsPerWord} onChange={e => setRepsPerWord(+e.target.value)} placeholder="Reps/word" aria-label="Repetitions per word" />
+          <input type="number" min={0} value={maxTimeMs} onChange={e => setMaxTimeMs(e.target.value)} placeholder="Max ms (optional)" aria-label="Max time in ms" />
+          {!activeRoundId ? (
+            <button onClick={async () => {
+              if (words.length === 0) {
+                alert("Add some words first!");
+                return;
+              }
+              const ids = words.map((w: any) => w._id);
+              const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
+              const rid = await startRound({ wordIds: ids, repsPerWord, maxTimeMs: maxMs } as any);
+              setActiveRoundId(rid as any);
+              goToRandomWord();
+              alert(`🚀 Round started! Goal: ${repsPerWord} correct attempts per word${maxMs ? ` under ${maxMs}ms` : ''}`);
+            }}>Start round</button>
+          ) : isRoundComplete ? (
+            <button onClick={() => setActiveRoundId(null)} style={{ background: 'green', color: 'white' }}>
+              🎉 Round Complete - Start New Round
+            </button>
+          ) : (
+            <button onClick={() => {
+              if (confirm("Are you sure you want to end this round early?")) {
+                setActiveRoundId(null);
+              }
+            }}>End round early</button>
+          )}
+          <button onClick={() => resetStats({} as any)}>Reset all results</button>
+        </div>
+
+        <div className="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Word</th>
+                <th>Attempts</th>
+                <th>Correct %</th>
+                <th>Typical</th>
+                <th>High score</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {words.map((w: any) => (
+                <tr key={w._id}>
+                  <td>{w.text}</td>
+                  <td>{w.stats.total}</td>
+                  <td>
+                    {w.stats.correctRate == null
+                      ? "—"
+                      : `${Math.round(w.stats.correctRate * 100)}%`}
+                  </td>
+                  <td>{msFmt(w.stats.typicalTimeMs)}</td>
+                  <td>{msFmt(w.stats.highScoreMs)}</td>
+                  <td><button onClick={() => resetStats({ wordId: w._id } as any)}>Reset</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

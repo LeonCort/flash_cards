@@ -1,0 +1,113 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+  padding: 24px;
+  align-items: start;
+}
+
+.themeToggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border: 1px solid var(--border);
+}
+
+.leftPane, .rightPane {
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--elev);
+  border: 1px solid var(--border);
+}
+
+.flashcard {
+  perspective: 1000px;
+}
+
+.flashcard.flipping .word {
+  transform: rotateY(90deg);
+}
+
+.word {
+  transition: transform 200ms ease;
+  transform-style: preserve-3d;
+}
+
+.flashcard .word {
+  font-size: 64px;
+  font-weight: 700;
+  text-align: center;
+  margin: 20px 0 8px;
+}
+
+.flashcard .timer {
+  font-size: 24px;
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.actions button {
+  font-size: 18px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+}
+
+.actions .next { background: var(--accent); color: #fff; border-color: var(--accent); }
+.actions .reset { background: transparent; color: var(--panel-text); border: 1px solid var(--border); }
+
+.addRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.addRow input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+}
+
+.addRow button {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+.error {
+  color: #9c1a1a;
+  margin-bottom: 8px;
+}
+
+.tableWrap {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+table { width: 100%; border-collapse: collapse; background: var(--panel-bg); color: var(--panel-text); }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+
+thead th { position: sticky; top: 0; background: rgba(0,0,0,0.02); }
+:root[data-theme="dark"] thead th { background: rgba(255,255,255,0.04); }
+
+.roundHUD { margin-bottom: 8px; color: var(--muted); font-weight: 600; }
