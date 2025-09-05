@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 1fr 1.2fr;
   gap: 24px;
-  padding: 24px;
+  padding: 80px 24px 24px 24px; /* Extra top padding for fixed controls */
   align-items: start;
   transition: grid-template-columns 0.3s ease;
 }
@@ -24,6 +24,7 @@
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
+    padding: 100px 16px 16px 16px; /* More top padding on mobile for controls */
   }
 
   .layout.focus-mode {
@@ -32,6 +33,10 @@
 
   .layout.focus-mode .rightPane {
     display: none;
+  }
+
+  .layout.focus-mode .leftPane {
+    min-height: calc(100vh - 100px); /* Account for mobile top padding */
   }
 }
 
@@ -47,6 +52,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 8px;
+  z-index: 1000; /* Ensure controls stay above other content */
 }
 
 .themeToggle, .focusToggle {
@@ -118,7 +124,7 @@
 
 /* Enhanced focus mode styling */
 .layout.focus-mode .leftPane {
-  min-height: 90vh;
+  min-height: calc(100vh - 80px); /* Account for top padding */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -547,6 +553,46 @@ td[data-stat="percentage"][data-value="low"] {
   margin: 0;
 }
 
+/* Dictionary Controls (View Toggle + Filters) */
+.dictionary-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary);
+}
+
+.filter-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
 .view-toggle {
   display: flex;
   gap: 4px;
@@ -690,7 +736,7 @@ td:first-child {
   transform: scale(0.95);
 }
 
-/* Responsive design for dictionary header */
+/* Responsive design for dictionary header and controls */
 @media (max-width: 768px) {
   .dictionary-header {
     flex-direction: column;
@@ -698,8 +744,22 @@ td:first-child {
     align-items: flex-start;
   }
 
+  .dictionary-controls {
+    gap: 16px;
+  }
+
   .view-toggle {
     align-self: stretch;
     justify-content: center;
+  }
+
+  .filter-buttons {
+    justify-content: center;
+  }
+
+  .filter-btn {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
   }
 }

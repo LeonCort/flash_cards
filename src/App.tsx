@@ -30,7 +30,7 @@ export default function App() {
   ) as any;
 
   const [repsPerWord, setRepsPerWord] = useState<number>(3);
-  const [maxTimeMs, setMaxTimeMs] = useState<string>("");
+  const [maxTimeMs, setMaxTimeMs] = useState<string>("3000");
 
   // Theme toggle
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("theme") ?? "light");
@@ -63,6 +63,9 @@ export default function App() {
     localStorage.setItem("dictionaryView", dictionaryView);
   }, [dictionaryView]);
 
+  // Dictionary filters
+  const [dictionaryFilter, setDictionaryFilter] = useState<'all' | 'non-cleared' | 'not-tested' | 'difficult'>('all');
+
   // Word selection functions
   const toggleWordSelection = (wordId: string) => {
     setSelectedWordIds(prev => {
@@ -77,16 +80,45 @@ export default function App() {
   };
 
   const selectAllWords = () => {
-    setSelectedWordIds(new Set(words.map((w: any) => w._id)));
+    setSelectedWordIds(new Set(filteredWords.map((w: any) => w._id)));
   };
 
   const clearWordSelection = () => {
     setSelectedWordIds(new Set());
   };
 
+  // Filter words based on selected filter
+  const filteredWords = useMemo(() => {
+    if (dictionaryFilter === 'all') return words;
+
+    return words.filter((w: any) => {
+      const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : 3000; // Use default 3000ms
+
+      switch (dictionaryFilter) {
+        case 'non-cleared':
+          // Words that haven't cleared the time limit (no high score or high score > maxTime)
+          return !w.stats.highScoreMs || w.stats.highScoreMs > maxMs;
+
+        case 'not-tested':
+          // Words with no attempts
+          return w.stats.total === 0;
+
+        case 'difficult':
+          // Words with attempts but poor performance (low accuracy or slow typical time)
+          if (w.stats.total === 0) return false;
+          const accuracy = w.stats.correctRate ? w.stats.correctRate * 100 : 0;
+          const isSlowTypical = w.stats.typicalTimeMs && w.stats.typicalTimeMs > maxMs;
+          return accuracy < 70 || isSlowTypical;
+
+        default:
+          return true;
+      }
+    });
+  }, [words, dictionaryFilter, maxTimeMs]);
+
   // Get selected words for training
-  const selectedWords = words.filter((w: any) => selectedWordIds.has(w._id));
-  const wordsToTrain = selectedWords.length > 0 ? selectedWords : words;
+  const selectedWords = filteredWords.filter((w: any) => selectedWordIds.has(w._id));
+  const wordsToTrain = selectedWords.length > 0 ? selectedWords : filteredWords;
 
   // Modal states
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
@@ -387,22 +419,6 @@ export default function App() {
       <div className="rightPane">
         <div className="dictionary-header">
           <h2>Dictionary</h2>
-          <div className="view-toggle">
-            <button
-              className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
-              onClick={() => setDictionaryView('table')}
-              title="Table view"
-            >
-              📋
-            </button>
-            <button
-              className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
-              onClick={() => setDictionaryView('grid')}
-              title="Grid view"
-            >
-              ⊞
-            </button>
-          </div>
         </div>
         <form className="addRow" onSubmit={onAdd}>
           <input
@@ -443,12 +459,63 @@ export default function App() {
           selectedWords={selectedWords.length}
         />
 
+        {/* View Toggle and Filters */}
+        <div className="dictionary-controls">
+          <div className="view-toggle">
+            <button
+              className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
+              onClick={() => setDictionaryView('table')}
+              title="Table view"
+            >
+              📋
+            </button>
+            <button
+              className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
+              onClick={() => setDictionaryView('grid')}
+              title="Grid view"
+            >
+              ⊞
+            </button>
+          </div>
+
+          <div className="filter-buttons">
+            <button
+              className={`filter-btn ${dictionaryFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setDictionaryFilter('all')}
+              title="Show all words"
+            >
+              All ({words.length})
+            </button>
+            <button
+              className={`filter-btn ${dictionaryFilter === 'non-cleared' ? 'active' : ''}`}
+              onClick={() => setDictionaryFilter('non-cleared')}
+              title="Words that haven't cleared the time limit"
+            >
+              Non-cleared
+            </button>
+            <button
+              className={`filter-btn ${dictionaryFilter === 'not-tested' ? 'active' : ''}`}
+              onClick={() => setDictionaryFilter('not-tested')}
+              title="Words with no attempts yet"
+            >
+              Not tested
+            </button>
+            <button
+              className={`filter-btn ${dictionaryFilter === 'difficult' ? 'active' : ''}`}
+              onClick={() => setDictionaryFilter('difficult')}
+              title="Words with low accuracy or slow typical time"
+            >
+              Difficult
+            </button>
+          </div>
+        </div>
+
 {/* Word Selection Info & Bulk Actions */}
         <div className="selection-controls">
           {selectedWords.length > 0 ? (
             <div className="word-selection-info">
               <span className="selection-count">
-                {selectedWords.length} of {words.length} words selected for training
+                {selectedWords.length} of {filteredWords.length} words selected for training
               </span>
               <button
                 className="clear-selection-btn"
@@ -458,7 +525,7 @@ export default function App() {
                 Clear Selection
               </button>
             </div>
-          ) : dictionaryView === 'grid' && words.length > 0 && (
+          ) : dictionaryView === 'grid' && filteredWords.length > 0 && (
             <div className="bulk-selection">
               <button
                 className="select-all-btn"
@@ -479,7 +546,7 @@ export default function App() {
                   <th>
                     <input
                       type="checkbox"
-                      checked={selectedWordIds.size === words.length && words.length > 0}
+                      checked={selectedWordIds.size === filteredWords.length && filteredWords.length > 0}
                       onChange={(e) => e.target.checked ? selectAllWords() : clearWordSelection()}
                       title="Select all words"
                     />
@@ -493,7 +560,7 @@ export default function App() {
                 </tr>
               </thead>
               <tbody>
-                {words.map((w: any) => (
+                {filteredWords.map((w: any) => (
                   <tr key={w._id}>
                     <td>
                       <input
@@ -520,7 +587,7 @@ export default function App() {
           </div>
         ) : (
           <DictionaryGrid
-            words={words}
+            words={filteredWords}
             selectedWordIds={selectedWordIds}
             onToggleSelection={toggleWordSelection}
             onReset={(wordId) => resetStats({ wordId } as any)}
