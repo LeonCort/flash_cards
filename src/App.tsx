@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import RoundStartModal from "./components/RoundStartModal";
+import RoundCompleteModal from "./components/RoundCompleteModal";
 import "./App.css";
 
 function msFmt(ms: number | null | undefined) {
@@ -39,6 +41,15 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("focusMode", focusMode.toString());
   }, [focusMode]);
+
+  // Modal states
+  const [showRoundStartModal, setShowRoundStartModal] = useState(false);
+  const [showRoundCompleteModal, setShowRoundCompleteModal] = useState(false);
+  const [pendingRoundSettings, setPendingRoundSettings] = useState<{
+    wordIds: string[];
+    repsPerWord: number;
+    maxTimeMs?: number;
+  } | null>(null);
 
   // Quick-add form
   const [newWord, setNewWord] = useState("");
@@ -122,15 +133,14 @@ export default function App() {
   // Check if round is complete
   const isRoundComplete = activeRoundId && roundState?.round?.status === "done";
 
-  // Auto-end completed rounds
+  // Auto-show round complete modal
   useEffect(() => {
     if (isRoundComplete) {
       setTimeout(() => {
-        alert(`🎉 Round Complete! You solved ${roundState.solved}/${roundState.total} words!`);
-        setActiveRoundId(null);
+        setShowRoundCompleteModal(true);
       }, 500);
     }
-  }, [isRoundComplete, roundState?.solved, roundState?.total]);
+  }, [isRoundComplete]);
 
   const onNext = useCallback(async () => {
     if (!currentWord) return;
@@ -152,6 +162,31 @@ export default function App() {
 
   const onReset = () => {
     startTimer();
+  };
+
+  // Modal handlers
+  const handleRoundStart = async () => {
+    if (!pendingRoundSettings) return;
+
+    const rid = await startRound({
+      wordIds: pendingRoundSettings.wordIds,
+      repsPerWord: pendingRoundSettings.repsPerWord,
+      maxTimeMs: pendingRoundSettings.maxTimeMs
+    } as any);
+
+    setActiveRoundId(rid as any);
+    setFocusMode(true); // Automatically enable focus mode when starting a round
+    goToRandomWord();
+    setPendingRoundSettings(null);
+  };
+
+  const handleContinuePracticing = () => {
+    // Just close the modal, keep the current state
+  };
+
+  const handleStartNewRound = () => {
+    setActiveRoundId(null);
+    // Could optionally trigger the round start modal again
   };
 
   // Spacebar keyboard shortcut for Next button
@@ -260,18 +295,15 @@ export default function App() {
           <input type="number" min={1} value={repsPerWord} onChange={e => setRepsPerWord(+e.target.value)} placeholder="Reps/word" aria-label="Repetitions per word" />
           <input type="number" min={0} value={maxTimeMs} onChange={e => setMaxTimeMs(e.target.value)} placeholder="Max ms (optional)" aria-label="Max time in ms" />
           {!activeRoundId ? (
-            <button onClick={async () => {
+            <button onClick={() => {
               if (words.length === 0) {
                 alert("Add some words first!");
                 return;
               }
               const ids = words.map((w: any) => w._id);
               const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
-              const rid = await startRound({ wordIds: ids, repsPerWord, maxTimeMs: maxMs } as any);
-              setActiveRoundId(rid as any);
-              setFocusMode(true); // Automatically enable focus mode when starting a round
-              goToRandomWord();
-              alert(`🚀 Round started! Goal: ${repsPerWord} correct attempts per word${maxMs ? ` under ${maxMs}ms` : ''}`);
+              setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
+              setShowRoundStartModal(true);
             }}>Start round</button>
           ) : isRoundComplete ? (
             <button onClick={() => {
@@ -321,6 +353,27 @@ export default function App() {
           </table>
         </div>
       </div>
+
+      {/* Modals */}
+      <RoundStartModal
+        isOpen={showRoundStartModal}
+        onClose={() => setShowRoundStartModal(false)}
+        onConfirm={handleRoundStart}
+        wordCount={pendingRoundSettings?.wordIds.length || 0}
+        repsPerWord={pendingRoundSettings?.repsPerWord || 0}
+        maxTimeMs={pendingRoundSettings?.maxTimeMs}
+      />
+
+      <RoundCompleteModal
+        isOpen={showRoundCompleteModal}
+        onClose={() => setShowRoundCompleteModal(false)}
+        onStartNewRound={handleStartNewRound}
+        onContinuePracticing={handleContinuePracticing}
+        solvedCount={roundState?.solved || 0}
+        totalCount={roundState?.total || 0}
+        repsPerWord={roundState?.round?.repsPerWord || 0}
+        maxTimeMs={roundState?.round?.maxTimeMs}
+      />
     </div>
   );
 }

@@ -1,0 +1,126 @@
+.round-start-modal .modal-content {
+  max-width: 450px;
+}
+
+.round-start-content {
+  text-align: center;
+}
+
+.round-start-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.round-start-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: var(--panel-text);
+}
+
+.round-start-description {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.round-start-stats {
+  background: var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--panel-text);
+}
+
+.round-start-goal {
+  background: var(--accent);
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 24px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.round-start-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.round-start-cancel,
+.round-start-confirm {
+  flex: 1;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.round-start-cancel {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.round-start-cancel:hover {
+  background: var(--border);
+  color: var(--panel-text);
+}
+
+.round-start-confirm {
+  background: var(--accent);
+  color: white;
+}
+
+.round-start-confirm:hover {
+  background: #3b82f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.round-start-confirm:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .round-start-stats {
+    padding: 16px;
+  }
+  
+  .round-start-actions {
+    flex-direction: column;
+  }
+  
+  .round-start-cancel,
+  .round-start-confirm {
+    width: 100%;
+  }
+}
