@@ -5,6 +5,7 @@ import RoundStartModal from "./components/RoundStartModal";
 import RoundCompleteModal from "./components/RoundCompleteModal";
 import RoundSettings from "./components/RoundSettings";
 import FocusFlashcard from "./components/FocusFlashcard";
+import DictionaryGrid from "./components/DictionaryGrid";
 import "./App.css";
 
 function msFmt(ms: number | null | undefined) {
@@ -50,6 +51,43 @@ export default function App() {
   const [sessionAttempts, setSessionAttempts] = useState<number>(0);
   const [sessionCorrect, setSessionCorrect] = useState<number>(0);
 
+  // Word selection for training rounds
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
+
+  // Dictionary view toggle
+  const [dictionaryView, setDictionaryView] = useState<'table' | 'grid'>(() =>
+    (localStorage.getItem("dictionaryView") as 'table' | 'grid') ?? 'table'
+  );
+
+  useEffect(() => {
+    localStorage.setItem("dictionaryView", dictionaryView);
+  }, [dictionaryView]);
+
+  // Word selection functions
+  const toggleWordSelection = (wordId: string) => {
+    setSelectedWordIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(wordId)) {
+        newSet.delete(wordId);
+      } else {
+        newSet.add(wordId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllWords = () => {
+    setSelectedWordIds(new Set(words.map((w: any) => w._id)));
+  };
+
+  const clearWordSelection = () => {
+    setSelectedWordIds(new Set());
+  };
+
+  // Get selected words for training
+  const selectedWords = words.filter((w: any) => selectedWordIds.has(w._id));
+  const wordsToTrain = selectedWords.length > 0 ? selectedWords : words;
+
   // Modal states
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
   const [showRoundCompleteModal, setShowRoundCompleteModal] = useState(false);
@@ -76,8 +114,8 @@ export default function App() {
     }
   };
 
-  // Current flashcard
-  const activeWords = words;
+  // Current flashcard - use selected words if any are selected
+  const activeWords = wordsToTrain;
   const [currentId, setCurrentId] = useState<string | null>(null);
   const currentWord = useMemo(
     () => activeWords.find(w => w._id === currentId) ?? null,
@@ -347,7 +385,25 @@ export default function App() {
       </div>
 
       <div className="rightPane">
-        <h2>Dictionary</h2>
+        <div className="dictionary-header">
+          <h2>Dictionary</h2>
+          <div className="view-toggle">
+            <button
+              className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
+              onClick={() => setDictionaryView('table')}
+              title="Table view"
+            >
+              📋
+            </button>
+            <button
+              className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
+              onClick={() => setDictionaryView('grid')}
+              title="Grid view"
+            >
+              ⊞
+            </button>
+          </div>
+        </div>
         <form className="addRow" onSubmit={onAdd}>
           <input
             placeholder="Add a word"
@@ -367,7 +423,7 @@ export default function App() {
           activeRoundId={activeRoundId}
           isRoundComplete={!!isRoundComplete}
           onStartRound={() => {
-            const ids = words.map((w: any) => w._id);
+            const ids = wordsToTrain.map((w: any) => w._id);
             const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
             setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
             setShowRoundStartModal(true);
@@ -382,39 +438,99 @@ export default function App() {
             // Keep focus mode as user preference when round completes
           }}
           onResetStats={() => resetStats({} as any)}
-          wordsCount={words.length}
+          wordsCount={wordsToTrain.length}
+          totalWords={words.length}
+          selectedWords={selectedWords.length}
         />
 
-        <div className="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Word</th>
-                <th>Attempts</th>
-                <th>Correct %</th>
-                <th>Typical</th>
-                <th>High score</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {words.map((w: any) => (
-                <tr key={w._id}>
-                  <td>{w.text}</td>
-                  <td>{w.stats.total}</td>
-                  <td>
-                    {w.stats.correctRate == null
-                      ? "—"
-                      : `${Math.round(w.stats.correctRate * 100)}%`}
-                  </td>
-                  <td>{msFmt(w.stats.typicalTimeMs)}</td>
-                  <td>{msFmt(w.stats.highScoreMs)}</td>
-                  <td><button onClick={() => resetStats({ wordId: w._id } as any)}>Reset</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+{/* Word Selection Info & Bulk Actions */}
+        <div className="selection-controls">
+          {selectedWords.length > 0 ? (
+            <div className="word-selection-info">
+              <span className="selection-count">
+                {selectedWords.length} of {words.length} words selected for training
+              </span>
+              <button
+                className="clear-selection-btn"
+                onClick={clearWordSelection}
+                title="Clear selection"
+              >
+                Clear Selection
+              </button>
+            </div>
+          ) : dictionaryView === 'grid' && words.length > 0 && (
+            <div className="bulk-selection">
+              <button
+                className="select-all-btn"
+                onClick={selectAllWords}
+                title="Select all words"
+              >
+                Select All Words
+              </button>
+            </div>
+          )}
         </div>
+
+{dictionaryView === 'table' ? (
+          <div className="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={selectedWordIds.size === words.length && words.length > 0}
+                      onChange={(e) => e.target.checked ? selectAllWords() : clearWordSelection()}
+                      title="Select all words"
+                    />
+                  </th>
+                  <th>Word</th>
+                  <th>Attempts</th>
+                  <th>Correct %</th>
+                  <th>Typical</th>
+                  <th>High score</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {words.map((w: any) => (
+                  <tr key={w._id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedWordIds.has(w._id)}
+                        onChange={() => toggleWordSelection(w._id)}
+                        title={`Select "${w.text}" for training`}
+                      />
+                    </td>
+                    <td>{w.text}</td>
+                    <td>{w.stats.total}</td>
+                    <td>
+                      {w.stats.correctRate == null
+                        ? "—"
+                        : `${Math.round(w.stats.correctRate * 100)}%`}
+                    </td>
+                    <td>{msFmt(w.stats.typicalTimeMs)}</td>
+                    <td>{msFmt(w.stats.highScoreMs)}</td>
+                    <td><button onClick={() => resetStats({ wordId: w._id } as any)}>Reset</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <DictionaryGrid
+            words={words}
+            selectedWordIds={selectedWordIds}
+            onToggleSelection={toggleWordSelection}
+            onReset={(wordId) => resetStats({ wordId } as any)}
+            onWordClick={(wordId) => {
+              setCurrentId(wordId);
+              startTimer();
+            }}
+            maxTimeMs={maxTimeMs ? Number(maxTimeMs) : undefined}
+          />
+        )}
       </div>
 
       {/* Modals */}

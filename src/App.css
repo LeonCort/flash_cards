@@ -535,6 +535,131 @@ td[data-stat="percentage"][data-value="low"] {
   }
 }
 
+/* Dictionary Header */
+.dictionary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dictionary-header h2 {
+  margin: 0;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--border);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--muted);
+}
+
+.view-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--panel-text);
+}
+
+.view-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Selection Controls */
+.selection-controls {
+  margin-bottom: 16px;
+}
+
+/* Word Selection Info */
+.word-selection-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* Bulk Selection */
+.bulk-selection {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.select-all-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-all-btn:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.selection-count {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.clear-selection-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-selection-btn:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Table checkbox styling */
+th input[type="checkbox"],
+td input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+th {
+  text-align: center;
+}
+
+td:first-child {
+  text-align: center;
+  width: 40px;
+}
+
 /* Floating action button */
 .fab {
   position: fixed;
@@ -563,4 +688,18 @@ td[data-stat="percentage"][data-value="low"] {
 
 .fab:active {
   transform: scale(0.95);
+}
+
+/* Responsive design for dictionary header */
+@media (max-width: 768px) {
+  .dictionary-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .view-toggle {
+    align-self: stretch;
+    justify-content: center;
+  }
 }

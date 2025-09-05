@@ -12,6 +12,8 @@ interface RoundSettingsProps {
   onCompleteRound: () => void;
   onResetStats: () => void;
   wordsCount: number;
+  totalWords?: number;
+  selectedWords?: number;
 }
 
 export default function RoundSettings({
@@ -25,7 +27,9 @@ export default function RoundSettings({
   onEndRound,
   onCompleteRound,
   onResetStats,
-  wordsCount
+  wordsCount,
+  totalWords = 0,
+  selectedWords = 0
 }: RoundSettingsProps) {
   const handleStartRound = () => {
     if (wordsCount === 0) {
@@ -85,14 +89,21 @@ export default function RoundSettings({
 
         <div className="settings-actions">
           {!activeRoundId ? (
-            <button 
+            <button
               onClick={handleStartRound}
               className="start-round-btn"
               disabled={wordsCount === 0}
             >
               <span className="btn-icon">🚀</span>
               Start Round
-              <span className="btn-subtitle">({wordsCount} words)</span>
+              <span className="btn-subtitle">
+                {selectedWords > 0 && selectedWords < totalWords
+                  ? `${selectedWords} of ${totalWords} words selected`
+                  : selectedWords === 0 && totalWords > 0
+                  ? `All ${wordsCount} words (none selected)`
+                  : `${wordsCount} words`
+                }
+              </span>
             </button>
           ) : isRoundComplete ? (
             <button 
