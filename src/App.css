@@ -113,13 +113,18 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
-.leftPane, .rightPane {
+.leftPane {
   background: var(--panel-bg);
   color: var(--panel-text);
   border-radius: 12px;
   padding: 20px;
   box-shadow: var(--elev);
   border: 1px solid var(--border);
+}
+
+.rightPane {
+  color: var(--panel-text);
+  padding: 20px;
 }
 
 /* Enhanced focus mode styling */
@@ -541,28 +546,49 @@ td[data-stat="percentage"][data-value="low"] {
   }
 }
 
-/* Dictionary Header */
-.dictionary-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.dictionary-header h2 {
-  margin: 0;
-}
-
-/* Dictionary Controls (View Toggle + Filters) */
-.dictionary-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 16px;
+/* Management Cards */
+.management-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.card-header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.card-content {
+  padding: 20px;
+}
+
+/* Dictionary Actions */
+.dictionary-actions {
+  margin-bottom: 20px;
+}
+
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.action-row:last-child {
+  margin-bottom: 0;
 }
 
 .filter-buttons {
@@ -593,20 +619,40 @@ td[data-stat="percentage"][data-value="low"] {
   border-color: var(--primary);
 }
 
+/* Reset Stats Button */
+.reset-stats-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reset-stats-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary);
+}
+
 .view-toggle {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   background: var(--border);
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: 6px;
+  padding: 2px;
 }
 
 .view-btn {
   background: transparent;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--muted);
@@ -736,30 +782,42 @@ td:first-child {
   transform: scale(0.95);
 }
 
-/* Responsive design for dictionary header and controls */
+/* Responsive design for management cards */
 @media (max-width: 768px) {
-  .dictionary-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
+  .management-card {
+    margin-bottom: 16px;
   }
 
-  .dictionary-controls {
-    gap: 16px;
+  .card-header {
+    padding: 12px 16px;
+  }
+
+  .card-content {
+    padding: 16px;
+  }
+
+  .action-row {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
   }
 
   .view-toggle {
-    align-self: stretch;
     justify-content: center;
   }
 
   .filter-buttons {
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .filter-btn {
     flex: 1;
     min-width: 0;
     text-align: center;
+  }
+
+  .reset-stats-btn {
+    justify-content: center;
   }
 }
