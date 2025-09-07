@@ -6,6 +6,8 @@ import RoundCompleteModal from "./components/RoundCompleteModal";
 
 import FocusFlashcard from "./components/FocusFlashcard";
 import DictionaryGrid from "./components/DictionaryGrid";
+import DictionarySelector from "./components/DictionarySelector";
+import DictionaryManagementModal from "./components/DictionaryManagementModal";
 import Toast from "./components/Toast";
 import { useToast } from "./hooks/useToast";
 import "./App.css";
@@ -16,10 +18,41 @@ function msFmt(ms: number | null | undefined) {
 }
 
 export default function App() {
-  const words = useQuery(api.words.listWithStats) ?? [];
+  // Dictionary state management
+  const [activeDictionaryId, setActiveDictionaryId] = useState<string | null>(() =>
+    localStorage.getItem("activeDictionaryId")
+  );
+
+  const dictionaries = useQuery(api.dictionaries.list) ?? [];
+  const firstDictionary = useQuery(api.dictionaries.getFirstDictionary);
+
+  // Auto-select first dictionary if none is selected
+  useEffect(() => {
+    if (!activeDictionaryId && firstDictionary) {
+      setActiveDictionaryId(firstDictionary._id);
+    }
+  }, [activeDictionaryId, firstDictionary]);
+
+  // Persist active dictionary selection
+  useEffect(() => {
+    if (activeDictionaryId) {
+      localStorage.setItem("activeDictionaryId", activeDictionaryId);
+    }
+  }, [activeDictionaryId]);
+
+  const words = useQuery(
+    api.words.listWithStats,
+    activeDictionaryId ? { dictionaryId: activeDictionaryId as any } : "skip"
+  ) ?? [];
+
   const addWord = useMutation(api.words.add);
   const recordAttempt = useMutation(api.attempts.record);
   const toast = useToast();
+
+  // Dictionary management
+  const createDictionary = useMutation(api.dictionaries.create);
+  const updateDictionary = useMutation(api.dictionaries.update);
+  const deleteDictionary = useMutation(api.dictionaries.remove);
 
   // Resets and rounds
   const resetStats = useMutation(api.words.resetStats);
@@ -162,6 +195,7 @@ export default function App() {
   // Modal states
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
   const [showRoundCompleteModal, setShowRoundCompleteModal] = useState(false);
+  const [showDictionaryManagementModal, setShowDictionaryManagementModal] = useState(false);
 
   // Quick-add form
   const [newWord, setNewWord] = useState("");
@@ -172,12 +206,60 @@ export default function App() {
     setError(null);
     const text = newWord.trim();
     if (!text) return;
+
+    if (!activeDictionaryId) {
+      setError("Please select a dictionary first");
+      return;
+    }
+
     try {
-      await addWord({ text });
+      await addWord({ text, dictionaryId: activeDictionaryId as any });
       setNewWord("");
       toast.success(`Added "${text}" to dictionary`);
     } catch (err: any) {
       setError(err?.message ?? "Failed to add word");
+    }
+  };
+
+  // Dictionary management handlers
+  const handleCreateDictionary = async (data: { name: string; description?: string; color?: string }) => {
+    try {
+      const dictionaryId = await createDictionary(data);
+      toast.success(`Created dictionary "${data.name}"`);
+      setActiveDictionaryId(dictionaryId as any);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to create dictionary");
+      throw err;
+    }
+  };
+
+  const handleUpdateDictionary = async (id: string, data: { name?: string; description?: string; color?: string }) => {
+    try {
+      await updateDictionary({ dictionaryId: id as any, ...data });
+      toast.success("Dictionary updated successfully");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update dictionary");
+      throw err;
+    }
+  };
+
+  const handleDeleteDictionary = async (id: string) => {
+    try {
+      await deleteDictionary({ dictionaryId: id as any });
+      toast.success("Dictionary deleted successfully");
+
+      // If we deleted the active dictionary, switch to the first available one
+      if (id === activeDictionaryId) {
+        const remainingDictionaries = dictionaries.filter(d => d._id !== id);
+        if (remainingDictionaries.length > 0) {
+          setActiveDictionaryId(remainingDictionaries[0]._id);
+        } else {
+          setActiveDictionaryId(null);
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to delete dictionary");
+      throw err;
     }
   };
 
@@ -536,6 +618,14 @@ export default function App() {
             </div>
           </div>
           <div className="card-content">
+            {/* Dictionary Selector */}
+            <DictionarySelector
+              dictionaries={dictionaries}
+              activeDictionaryId={activeDictionaryId}
+              onDictionaryChange={setActiveDictionaryId}
+              onCreateDictionary={() => setShowDictionaryManagementModal(true)}
+              onManageDictionaries={() => setShowDictionaryManagementModal(true)}
+            />
 
             {/* Add Word Action */}
             <form className="addRow" onSubmit={onAdd}>
@@ -581,8 +671,8 @@ export default function App() {
                 <button
                   className="btn btn--destructive btn--sm"
                   onClick={() => {
-                    if (confirm("Are you sure you want to reset all word statistics? This cannot be undone.")) {
-                      resetStats({} as any);
+                    if (confirm("Are you sure you want to reset all word statistics in this dictionary? This cannot be undone.")) {
+                      resetStats({ dictionaryId: activeDictionaryId } as any);
                     }
                   }}
                   title="Reset all word statistics"
@@ -708,7 +798,15 @@ export default function App() {
         maxTimeMs={roundState?.round?.maxTimeMs}
       />
 
-
+      <DictionaryManagementModal
+        isOpen={showDictionaryManagementModal}
+        onClose={() => setShowDictionaryManagementModal(false)}
+        dictionaries={dictionaries}
+        onCreateDictionary={handleCreateDictionary}
+        onUpdateDictionary={handleUpdateDictionary}
+        onDeleteDictionary={handleDeleteDictionary}
+        activeDictionaryId={activeDictionaryId}
+      />
 
       {/* Toast Notifications */}
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />

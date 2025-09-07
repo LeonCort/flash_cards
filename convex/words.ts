@@ -4,6 +4,7 @@ import { v } from "convex/values";
 export const add = mutation({
   args: {
     text: v.string(),
+    dictionaryId: v.id("dictionaries"),
     tags: v.optional(v.array(v.string())),
     gradeLevel: v.optional(v.union(v.string(), v.number())),
   },
@@ -11,14 +12,23 @@ export const add = mutation({
     const text = args.text.trim().toLowerCase();
     if (!text) throw new Error("Word cannot be empty");
 
+    // Verify dictionary exists and is active
+    const dictionary = await ctx.db.get(args.dictionaryId);
+    if (!dictionary || !dictionary.active) {
+      throw new Error("Dictionary not found");
+    }
+
+    // Check for duplicates within the specific dictionary
     const existing = await ctx.db
       .query("words")
-      .withIndex("by_text", q => q.eq("text", text))
+      .withIndex("by_text_and_dictionary", q =>
+        q.eq("text", text).eq("dictionaryId", args.dictionaryId))
       .unique();
-    if (existing) throw new Error("Word already exists");
+    if (existing) throw new Error("Word already exists in this dictionary");
 
     const id = await ctx.db.insert("words", {
       text,
+      dictionaryId: args.dictionaryId,
       createdAt: Date.now(),
       active: true,
       tags: args.tags ?? [],
@@ -36,11 +46,18 @@ function median(nums: number[]): number | null {
 }
 
 export const listWithStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { dictionaryId: v.id("dictionaries") },
+  handler: async (ctx, args) => {
+    // Verify dictionary exists and is active
+    const dictionary = await ctx.db.get(args.dictionaryId);
+    if (!dictionary || !dictionary.active) {
+      throw new Error("Dictionary not found");
+    }
+
     const words = await ctx.db
       .query("words")
-      .withIndex("by_active", q => q.eq("active", true))
+      .withIndex("by_dictionary_and_active", q =>
+        q.eq("dictionaryId", args.dictionaryId).eq("active", true))
       .collect();
 
     const result: any[] = [];
@@ -81,14 +98,29 @@ export const listWithStats = query({
 });
 
 export const resetStats = mutation({
-  args: { wordId: v.optional(v.id("words")) },
-  handler: async (ctx, { wordId }) => {
+  args: {
+    wordId: v.optional(v.id("words")),
+    dictionaryId: v.optional(v.id("dictionaries"))
+  },
+  handler: async (ctx, { wordId, dictionaryId }) => {
     const ts = Date.now();
     if (wordId) {
       const word = await ctx.db.get(wordId);
       if (!word) throw new Error("Word not found");
       await ctx.db.patch(wordId, { resetAt: ts });
+    } else if (dictionaryId) {
+      // Reset all words in a specific dictionary
+      const dictionary = await ctx.db.get(dictionaryId);
+      if (!dictionary || !dictionary.active) {
+        throw new Error("Dictionary not found");
+      }
+      const words = await ctx.db
+        .query("words")
+        .withIndex("by_dictionary", q => q.eq("dictionaryId", dictionaryId))
+        .collect();
+      for (const w of words) await ctx.db.patch(w._id, { resetAt: ts });
     } else {
+      // Reset all words across all dictionaries (legacy support)
       const all = await ctx.db.query("words").collect();
       for (const w of all) await ctx.db.patch(w._id, { resetAt: ts });
     }

@@ -1,0 +1,204 @@
+.dictionary-selector {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+
+.dictionary-selector.empty {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.empty-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.dictionary-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.dictionary-selector-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--panel-text);
+}
+
+.dictionary-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.dictionary-dropdown {
+  position: relative;
+}
+
+.dictionary-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dictionary-dropdown-trigger:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.dictionary-dropdown-trigger.open {
+  border-color: var(--accent);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.dictionary-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.dictionary-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dictionary-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.dictionary-name {
+  font-weight: 600;
+  color: var(--panel-text);
+  font-size: 14px;
+}
+
+.dictionary-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dictionary-description {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.8;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dictionary-placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.dropdown-arrow {
+  font-size: 12px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.dictionary-dropdown-trigger.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dictionary-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--accent);
+  border-top: none;
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dictionary-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.dictionary-option:hover {
+  background: var(--hover-bg);
+}
+
+.dictionary-option.active {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+
+.dictionary-option.active .dictionary-name {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: transparent;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dictionary-selector-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .dictionary-actions {
+    align-self: flex-end;
+  }
+
+  .dictionary-dropdown-menu {
+    max-height: 200px;
+  }
+}

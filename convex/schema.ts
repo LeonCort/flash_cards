@@ -2,16 +2,27 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Dictionaries table for organizing words into separate collections
+  dictionaries: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+    active: v.boolean(),
+    color: v.optional(v.string()), // For UI theming
+  }).index("by_active", ["active"]),
+
   words: defineTable({
     text: v.string(),
+    dictionaryId: v.optional(v.id("dictionaries")), // Link to dictionary (optional for migration)
     createdAt: v.number(),
     active: v.boolean(),
     tags: v.optional(v.array(v.string())),
     gradeLevel: v.optional(v.union(v.string(), v.number())),
     resetAt: v.optional(v.number()), // Soft reset cutoff; attempts before this are ignored
   })
-    .index("by_text", ["text"])
-    .index("by_active", ["active"]),
+    .index("by_text_and_dictionary", ["text", "dictionaryId"]) // Prevent duplicates per dictionary
+    .index("by_dictionary", ["dictionaryId"])
+    .index("by_dictionary_and_active", ["dictionaryId", "active"]),
 
   attempts: defineTable({
     wordId: v.id("words"),
