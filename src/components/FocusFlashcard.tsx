@@ -36,10 +36,19 @@ export default function FocusFlashcard({
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
-  // Determine if we're approaching or exceeding time limit
+  // Calculate progress bar values
   const maxTime = roundState?.round?.maxTimeMs;
-  const isApproachingLimit = maxTime && elapsedMs > maxTime * 0.8;
-  const isOverLimit = maxTime && elapsedMs > maxTime;
+  const progressPercentage = maxTime ? Math.min((elapsedMs / maxTime) * 100, 100) : 0;
+
+  // Determine progress bar color based on elapsed time
+  const getProgressBarColor = () => {
+    if (!maxTime) return 'var(--accent)';
+
+    const ratio = elapsedMs / maxTime;
+    if (ratio <= 0.5) return '#10b981'; // Green - good time
+    if (ratio <= 0.8) return '#f59e0b'; // Yellow - approaching limit
+    return '#ef4444'; // Red - over/near limit
+  };
 
   return (
     <div className={`focus-flashcard ${flipping ? 'flipping' : ''}`}>
@@ -67,15 +76,30 @@ export default function FocusFlashcard({
 
       {/* Main Word Display */}
       <div className="word-container">
-        <div className={`word-display ${isOverLimit ? 'over-limit' : isApproachingLimit ? 'approaching-limit' : ''}`}>
+        <div className="word-display">
           {word}
         </div>
 
-        {/* Simple Timer */}
-        <div className={`timer-display ${isOverLimit ? 'over-limit' : isApproachingLimit ? 'approaching-limit' : ''}`}>
-          {formatTime(elapsedMs)}
+        {/* Timer with Progress Bar */}
+        <div className="timer-container">
+          <div className="timer-display">
+            {formatTime(elapsedMs)}
+            {maxTime && (
+              <span className="time-limit">/ {formatTime(maxTime)}</span>
+            )}
+          </div>
+
+          {/* Progress Bar */}
           {maxTime && (
-            <span className="time-limit">/ {formatTime(maxTime)}</span>
+            <div className="timer-progress-bar-container">
+              <div
+                className="timer-progress-bar"
+                style={{
+                  width: `${progressPercentage}%`,
+                  backgroundColor: getProgressBarColor()
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
