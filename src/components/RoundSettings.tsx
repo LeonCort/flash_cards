@@ -91,46 +91,39 @@ export default function RoundSettings({
           {!activeRoundId ? (
             <button
               onClick={handleStartRound}
-              className="start-round-btn"
+              className="btn btn--success btn--lg"
               disabled={wordsCount === 0}
+              style={{ width: '100%' }}
             >
-              <span className="btn-icon">🚀</span>
+              <span>🚀</span>
               Start Round
-              <span className="btn-subtitle">
+              <div style={{ fontSize: '12px', opacity: 0.9, marginTop: '2px' }}>
                 {selectedWords > 0 && selectedWords < totalWords
                   ? `${selectedWords} of ${totalWords} words selected`
                   : selectedWords === 0 && totalWords > 0
                   ? `All ${wordsCount} words (none selected)`
                   : `${wordsCount} words`
                 }
-              </span>
+              </div>
             </button>
           ) : isRoundComplete ? (
-            <button 
+            <button
               onClick={onCompleteRound}
-              className="complete-round-btn"
+              className="btn btn--success btn--lg"
+              style={{ width: '100%' }}
             >
-              <span className="btn-icon">🎉</span>
+              <span>🎉</span>
               Start New Round
             </button>
           ) : (
-            <button 
+            <button
               onClick={onEndRound}
-              className="end-round-btn"
+              className="btn btn--destructive"
             >
-              <span className="btn-icon">⏹️</span>
+              <span>⏹️</span>
               End Round Early
             </button>
           )}
-
-          <button 
-            onClick={onResetStats}
-            className="reset-stats-btn"
-            title="Reset all word statistics"
-          >
-            <span className="btn-icon">🔄</span>
-            Reset Stats
-          </button>
         </div>
       </div>
     </div>

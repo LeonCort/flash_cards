@@ -45,6 +45,13 @@ export default function WordCard({
     return 'needs-work';
   };
 
+  const getPerformanceBadge = () => {
+    if (!hasAttempts) return 'New';
+    if (accuracy >= 90) return 'Excellent';
+    if (accuracy >= 70) return 'Good';
+    return 'Needs Work';
+  };
+
   const performanceLevel = getPerformanceLevel();
 
   const handleCardClick = () => {
@@ -61,8 +68,20 @@ export default function WordCard({
       className={`word-card ${performanceLevel} ${isSelected ? 'selected' : ''}`}
       onClick={handleCardClick}
       title={`Click to ${isSelected ? 'deselect' : 'select'} "${word.text}" for training`}
+      tabIndex={0}
+      role="option"
+      aria-selected={isSelected}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
     >
-
+      {/* Performance badge */}
+      <div className="performance-badge">
+        {getPerformanceBadge()}
+      </div>
 
       {/* Performance indicators */}
       <div className="card-indicators">
@@ -103,14 +122,14 @@ export default function WordCard({
       {/* Action buttons */}
       <div className="card-actions">
         <button
-          className="practice-btn"
+          className="btn btn--primary btn--sm"
           onClick={handlePracticeClick}
           title={`Practice "${word.text}"`}
         >
           Practice
         </button>
         <button
-          className="reset-btn"
+          className="btn btn--ghost btn--sm"
           onClick={(e) => {
             e.stopPropagation();
             onReset(word._id);

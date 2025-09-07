@@ -31,7 +31,12 @@ export default function DictionaryGrid({
   }
 
   return (
-    <div className="words-grid">
+    <div
+      className="words-grid"
+      role="listbox"
+      aria-label="Word dictionary"
+      aria-multiselectable="true"
+    >
       {words.map((word) => (
         <WordCard
           key={word._id}

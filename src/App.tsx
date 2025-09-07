@@ -6,6 +6,8 @@ import RoundCompleteModal from "./components/RoundCompleteModal";
 import RoundSettings from "./components/RoundSettings";
 import FocusFlashcard from "./components/FocusFlashcard";
 import DictionaryGrid from "./components/DictionaryGrid";
+import Toast from "./components/Toast";
+import { useToast } from "./hooks/useToast";
 import "./App.css";
 
 function msFmt(ms: number | null | undefined) {
@@ -17,6 +19,7 @@ export default function App() {
   const words = useQuery(api.words.listWithStats) ?? [];
   const addWord = useMutation(api.words.add);
   const recordAttempt = useMutation(api.attempts.record);
+  const toast = useToast();
 
   // Resets and rounds
   const resetStats = useMutation(api.words.resetStats);
@@ -56,7 +59,7 @@ export default function App() {
 
   // Dictionary view toggle
   const [dictionaryView, setDictionaryView] = useState<'table' | 'grid'>(() =>
-    (localStorage.getItem("dictionaryView") as 'table' | 'grid') ?? 'table'
+    (localStorage.getItem("dictionaryView") as 'table' | 'grid') ?? 'grid'
   );
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function App() {
   const toggleWordSelection = (wordId: string) => {
     setSelectedWordIds(prev => {
       const newSet = new Set(prev);
+
       if (newSet.has(wordId)) {
         newSet.delete(wordId);
       } else {
@@ -141,6 +145,7 @@ export default function App() {
     try {
       await addWord({ text });
       setNewWord("");
+      toast.success(`Added "${text}" to dictionary`);
     } catch (err: any) {
       setError(err?.message ?? "Failed to add word");
     }
@@ -342,25 +347,32 @@ export default function App() {
   }, [currentWord, onNext]);
 
   return (
-    <div className={`layout ${focusMode ? "focus-mode" : ""}`}>
-      <div className="topControls">
-        <button
-          className="themeToggle"
-          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          aria-label="Toggle theme"
-          title="Toggle theme"
-        >
-          {theme === "light" ? "Dark" : "Light"}
-        </button>
-        <button
-          className="focusToggle"
-          onClick={() => setFocusMode(!focusMode)}
-          aria-label="Toggle focus mode"
-          title="Toggle focus mode"
-        >
-          {focusMode ? "Exit Focus" : "Focus"}
-        </button>
-      </div>
+    <>
+      <header className="header">
+        <div className="header-title">
+          <h1>Flashcards</h1>
+        </div>
+        <div className="header-controls">
+          <button
+            className="btn btn--secondary btn--sm"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
+          <button
+            className={`btn btn--sm ${focusMode ? "btn--destructive" : "btn--primary"}`}
+            onClick={() => setFocusMode(!focusMode)}
+            aria-label="Toggle focus mode"
+            title="Toggle focus mode"
+          >
+            {focusMode ? "Exit Focus" : "Focus"}
+          </button>
+        </div>
+      </header>
+
+      <div className={`layout ${focusMode ? "focus-mode" : ""}`}>
 
       <div className="leftPane">
         <h1>Flashcard</h1>
@@ -396,16 +408,32 @@ export default function App() {
                 </div>
               )}
               <div className="word">{currentWord.text}</div>
-              <div className="timer">{msFmt(elapsedMs)}</div>
+              <div className="timer-container">
+                <div className="timer">{msFmt(elapsedMs)}</div>
+                {maxTimeMs && Number(maxTimeMs) > 0 && (
+                  <div className="timer-progress">
+                    <div
+                      className="timer-progress-bar"
+                      style={{
+                        width: `${Math.min((elapsedMs / Number(maxTimeMs)) * 100, 100)}%`,
+                        backgroundColor: elapsedMs > Number(maxTimeMs) ? 'var(--destructive)' : 'var(--primary)'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
               <div className="actions">
                 <button
-                  className="next"
+                  className="btn btn--primary btn--lg"
                   onClick={onNext}
                   title="Click or press Spacebar"
                 >
                   Next <span className="keyboard-hint">⎵</span>
                 </button>
-                <button className="reset" onClick={onReset}>
+                <button
+                  className="btn btn--secondary"
+                  onClick={onReset}
+                >
                   Reset
                 </button>
               </div>
@@ -475,6 +503,7 @@ export default function App() {
             </div>
           </div>
           <div className="card-content">
+
             {/* Add Word Action */}
             <form className="addRow" onSubmit={onAdd}>
               <input
@@ -483,7 +512,7 @@ export default function App() {
                 onChange={e => setNewWord(e.target.value)}
                 aria-label="New word"
               />
-              <button type="submit">Add</button>
+              <button className="btn btn--secondary" type="submit">Add</button>
             </form>
             {error && <div className="error">{error}</div>}
             {/* Filters */}
@@ -516,6 +545,17 @@ export default function App() {
                 >
                   Difficult
                 </button>
+                <button
+                  className="btn btn--destructive btn--sm"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to reset all word statistics? This cannot be undone.")) {
+                      resetStats({} as any);
+                    }
+                  }}
+                  title="Reset all word statistics"
+                >
+                  🗑️ Reset All Stats
+                </button>
               </div>
 
             {/* Word Selection Info & Bulk Actions */}
@@ -525,13 +565,26 @@ export default function App() {
                   <span className="selection-count">
                     {selectedWords.length} of {filteredWords.length} words selected for training
                   </span>
-                  <button
-                    className="clear-selection-btn"
-                    onClick={clearWordSelection}
-                    title="Clear selection"
-                  >
-                    Clear Selection
-                  </button>
+                  <div className="selection-actions">
+                    <button
+                      className="btn btn--primary"
+                      onClick={() => {
+                        const ids = Array.from(selectedWordIds);
+                        const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
+                        setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
+                        setShowRoundStartModal(true);
+                      }}
+                    >
+                      Start Round
+                    </button>
+                    <button
+                      className="clear-selection-btn"
+                      onClick={clearWordSelection}
+                      title="Clear selection"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
                 </div>
               ) : dictionaryView === 'grid' && filteredWords.length > 0 && (
                 <div className="bulk-selection">
@@ -587,7 +640,15 @@ export default function App() {
                         </td>
                         <td>{msFmt(w.stats.typicalTimeMs)}</td>
                         <td>{msFmt(w.stats.highScoreMs)}</td>
-                        <td><button onClick={() => resetStats({ wordId: w._id } as any)}>Reset</button></td>
+                        <td>
+                          <button
+                            className="btn btn--ghost btn--sm"
+                            onClick={() => resetStats({ wordId: w._id } as any)}
+                            title="Reset statistics for this word"
+                          >
+                            🗑️
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -608,6 +669,8 @@ export default function App() {
             )}
           </div>
         </div>
+
+
       </div>
 
       {/* Modals */}
@@ -630,6 +693,26 @@ export default function App() {
         repsPerWord={roundState?.round?.repsPerWord || 0}
         maxTimeMs={roundState?.round?.maxTimeMs}
       />
-    </div>
+
+      {/* Mobile Floating Action Button */}
+      {selectedWordIds.size > 0 && (
+        <button
+          className="fab mobile-start-round"
+          onClick={() => {
+            const ids = Array.from(selectedWordIds);
+            const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
+            setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
+            setShowRoundStartModal(true);
+          }}
+          title={`Start round with ${selectedWordIds.size} selected words`}
+        >
+          🚀
+        </button>
+      )}
+
+      {/* Toast Notifications */}
+      <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
+      </div>
+    </>
   );
 }
