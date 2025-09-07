@@ -13,11 +13,38 @@
   backdrop-filter: blur(10px);
 }
 
+.header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .header-title h1 {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
   color: var(--text);
+}
+
+.round-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.round-indicator {
+  background: var(--accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.round-progress {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .header-controls {
@@ -27,24 +54,17 @@
 }
 
 .layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
-  align-items: start;
-  transition: grid-template-columns 0.3s ease;
+  max-width: 1400px; /* Reasonable max width for the entire layout */
+  margin: 0 auto; /* Center the layout */
 }
 
-/* Focus mode: hide right pane on larger screens, stack on smaller */
-.layout.focus-mode {
-  grid-template-columns: 1fr 0fr;
-}
-
+/* Focus mode: hide word list section */
 .layout.focus-mode .rightPane {
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  display: none;
 }
 
 /* On smaller screens, always stack vertically */
@@ -58,17 +78,8 @@
   }
 
   .layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
     padding: var(--space-4);
-  }
-
-  .layout.focus-mode {
-    grid-template-columns: 1fr;
-  }
-
-  .layout.focus-mode .rightPane {
-    display: none;
+    max-width: none; /* Remove max-width constraint on mobile */
   }
 
   .layout.focus-mode .leftPane {
@@ -85,16 +96,21 @@
   padding: 20px;
   box-shadow: var(--elev);
   border: 1px solid var(--border);
+  max-width: 800px; /* Max width for flashcard section */
+  margin: 0 auto; /* Center the flashcard */
+  width: 100%;
 }
 
 .rightPane {
   color: var(--panel-text);
   padding: 20px;
+  width: 100%;
 }
 
 /* Enhanced focus mode styling */
 .layout.focus-mode .leftPane {
   min-height: calc(100vh - 64px - var(--space-6)); /* Account for header height and padding */
+  max-width: none; /* Remove max-width in focus mode for full width */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -438,6 +454,12 @@ td[data-stat="percentage"][data-value="low"] {
   color: var(--text);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .card-content {
   padding: 20px;
 }
@@ -544,6 +566,7 @@ td[data-stat="percentage"][data-value="low"] {
 /* Selection Controls */
 .selection-controls {
   margin-bottom: 16px;
+  margin-top: 16px;
 }
 
 /* Word Selection Info */
@@ -596,6 +619,7 @@ td[data-stat="percentage"][data-value="low"] {
 
 .clear-selection-btn {
   background: transparent;
+  margin-left: 24px;
   color: var(--accent);
   border: 1px solid var(--accent);
   padding: 6px 12px;

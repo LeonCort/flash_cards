@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import RoundStartModal from "./components/RoundStartModal";
+import RoundStartModal, { type WordSource } from "./components/RoundStartModal";
 import RoundCompleteModal from "./components/RoundCompleteModal";
-import RoundSettings from "./components/RoundSettings";
+
 import FocusFlashcard from "./components/FocusFlashcard";
 import DictionaryGrid from "./components/DictionaryGrid";
 import Toast from "./components/Toast";
@@ -32,8 +32,7 @@ export default function App() {
     { roundId: activeRoundId }
   ) as any;
 
-  const [repsPerWord, setRepsPerWord] = useState<number>(3);
-  const [maxTimeMs, setMaxTimeMs] = useState<string>("3000");
+
 
   // Theme toggle
   const [theme, setTheme] = useState<string>(() => localStorage.getItem("theme") ?? "light");
@@ -96,7 +95,7 @@ export default function App() {
     if (dictionaryFilter === 'all') return words;
 
     return words.filter((w: any) => {
-      const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : 3000; // Use default 3000ms
+      const maxMs = 3000; // Default 3 second threshold for difficult words
 
       switch (dictionaryFilter) {
         case 'non-cleared':
@@ -118,20 +117,51 @@ export default function App() {
           return true;
       }
     });
-  }, [words, dictionaryFilter, maxTimeMs]);
+  }, [words, dictionaryFilter]);
 
   // Get selected words for training
   const selectedWords = filteredWords.filter((w: any) => selectedWordIds.has(w._id));
   const wordsToTrain = selectedWords.length > 0 ? selectedWords : filteredWords;
 
+  // Helper function to get words by source
+  const getWordsBySource = (source: WordSource) => {
+    const maxMs = 3000; // Default 3 second threshold for difficult words
+
+    switch (source) {
+      case 'all':
+        return words;
+      case 'non-cleared':
+        return words.filter((w: any) => !w.stats.highScoreMs || w.stats.highScoreMs > maxMs);
+      case 'difficult':
+        return words.filter((w: any) => {
+          if (w.stats.total === 0) return false;
+          const accuracy = w.stats.correctRate ? w.stats.correctRate * 100 : 0;
+          const isSlowTypical = w.stats.typicalTimeMs && w.stats.typicalTimeMs > maxMs;
+          return accuracy < 70 || isSlowTypical;
+        });
+      case 'custom':
+        return selectedWords;
+      default:
+        return [];
+    }
+  };
+
+  // Calculate word counts for modal
+  const wordCounts = {
+    all: words.length,
+    nonCleared: words.filter((w: any) => !w.stats.highScoreMs || w.stats.highScoreMs > 3000).length,
+    difficult: words.filter((w: any) => {
+      if (w.stats.total === 0) return false;
+      const accuracy = w.stats.correctRate ? w.stats.correctRate * 100 : 0;
+      const isSlowTypical = w.stats.typicalTimeMs && w.stats.typicalTimeMs > 3000;
+      return accuracy < 70 || isSlowTypical;
+    }).length,
+    custom: selectedWords.length
+  };
+
   // Modal states
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
   const [showRoundCompleteModal, setShowRoundCompleteModal] = useState(false);
-  const [pendingRoundSettings, setPendingRoundSettings] = useState<{
-    wordIds: string[];
-    repsPerWord: number;
-    maxTimeMs?: number;
-  } | null>(null);
 
   // Quick-add form
   const [newWord, setNewWord] = useState("");
@@ -203,12 +233,15 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Pick an initial word once words arrive
-    if (currentId === null && activeWords.length > 0) {
-      goToRandomWord();
+    // Pick an initial word once words arrive or when activeWords change
+    if (activeWords.length > 0) {
+      // If no current word or current word is not in the active words, pick a new one
+      if (currentId === null || !activeWords.find(w => w._id === currentId)) {
+        goToRandomWord();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWords.length]);
+  }, [activeWords, currentId]);
 
   // Flip animation state
   const [flipping, setFlipping] = useState(false);
@@ -289,13 +322,16 @@ export default function App() {
   }, [currentWord, activeRoundId, recordRound, recordAttempt, sessionCorrect, sessionAttempts]);
 
   // Modal handlers
-  const handleRoundStart = async () => {
-    if (!pendingRoundSettings) return;
+  const handleRoundStart = async (settings: { repsPerWord: number; maxTimeMs?: number; wordSource: WordSource }) => {
+    const wordsForRound = getWordsBySource(settings.wordSource);
+    if (wordsForRound.length === 0) return;
+
+    const wordIds = wordsForRound.map((w: any) => w._id);
 
     const rid = await startRound({
-      wordIds: pendingRoundSettings.wordIds,
-      repsPerWord: pendingRoundSettings.repsPerWord,
-      maxTimeMs: pendingRoundSettings.maxTimeMs
+      wordIds,
+      repsPerWord: settings.repsPerWord,
+      maxTimeMs: settings.maxTimeMs
     } as any);
 
     setActiveRoundId(rid as any);
@@ -308,7 +344,6 @@ export default function App() {
     setSessionCorrect(0);
 
     goToRandomWord();
-    setPendingRoundSettings(null);
   };
 
   const handleContinuePracticing = () => {
@@ -351,8 +386,33 @@ export default function App() {
       <header className="header">
         <div className="header-title">
           <h1>Flashcards</h1>
+          {activeRoundId && (
+            <div className="round-status">
+              <span className="round-indicator">🎯 Round Active</span>
+              {roundState?.round && (
+                <span className="round-progress">
+                  {roundState.round.repsPerWord} reps per word
+                  {roundState.round.maxTimeMs && ` • ${(roundState.round.maxTimeMs / 1000).toFixed(1)}s limit`}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="header-controls">
+          {activeRoundId && (
+            <button
+              className="btn btn--danger btn--sm"
+              onClick={() => {
+                if (confirm("Are you sure you want to end this round early?")) {
+                  setActiveRoundId(null);
+                  setFocusMode(false);
+                }
+              }}
+              title="End current round"
+            >
+              End Round
+            </button>
+          )}
           <button
             className="btn btn--secondary btn--sm"
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
@@ -375,7 +435,6 @@ export default function App() {
       <div className={`layout ${focusMode ? "focus-mode" : ""}`}>
 
       <div className="leftPane">
-        <h1>Flashcard</h1>
 {currentWord ? (
           focusMode && activeRoundId ? (
             <FocusFlashcard
@@ -410,13 +469,13 @@ export default function App() {
               <div className="word">{currentWord.text}</div>
               <div className="timer-container">
                 <div className="timer">{msFmt(elapsedMs)}</div>
-                {maxTimeMs && Number(maxTimeMs) > 0 && (
+                {roundState?.round?.maxTimeMs && (
                   <div className="timer-progress">
                     <div
                       className="timer-progress-bar"
                       style={{
-                        width: `${Math.min((elapsedMs / Number(maxTimeMs)) * 100, 100)}%`,
-                        backgroundColor: elapsedMs > Number(maxTimeMs) ? 'var(--destructive)' : 'var(--primary)'
+                        width: `${Math.min((elapsedMs / roundState.round.maxTimeMs) * 100, 100)}%`,
+                        backgroundColor: elapsedMs > roundState.round.maxTimeMs ? 'var(--destructive)' : 'var(--primary)'
                       }}
                     />
                   </div>
@@ -445,61 +504,35 @@ export default function App() {
       </div>
 
       <div className="rightPane">
-        {/* Training Card */}
-        <div className="management-card">
-          <div className="card-header">
-            <h3>Training</h3>
-          </div>
-          <div className="card-content">
-            <RoundSettings
-              repsPerWord={repsPerWord}
-              setRepsPerWord={setRepsPerWord}
-              maxTimeMs={maxTimeMs}
-              setMaxTimeMs={setMaxTimeMs}
-              activeRoundId={activeRoundId}
-              isRoundComplete={!!isRoundComplete}
-              onStartRound={() => {
-                const ids = wordsToTrain.map((w: any) => w._id);
-                const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
-                setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
-                setShowRoundStartModal(true);
-              }}
-              onEndRound={() => {
-                if (confirm("Are you sure you want to end this round early?")) {
-                  setActiveRoundId(null);
-                }
-              }}
-              onCompleteRound={() => {
-                setActiveRoundId(null);
-                // Keep focus mode as user preference when round completes
-              }}
-              onResetStats={() => resetStats({} as any)}
-              wordsCount={wordsToTrain.length}
-              totalWords={words.length}
-              selectedWords={selectedWords.length}
-            />
-          </div>
-        </div>
 
         {/* Word List Card */}
         <div className="management-card">
           <div className="card-header">
             <h3>Word List</h3>
-            <div className="view-toggle">
+            <div className="header-actions">
               <button
-                className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
-                onClick={() => setDictionaryView('table')}
-                title="Table view"
+                className="btn btn--primary btn--sm"
+                onClick={() => setShowRoundStartModal(true)}
+                title="Start practice session"
               >
-                📋
+                Practice
               </button>
-              <button
-                className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
-                onClick={() => setDictionaryView('grid')}
-                title="Grid view"
-              >
-                ⊞
-              </button>
+              <div className="view-toggle">
+                <button
+                  className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
+                  onClick={() => setDictionaryView('table')}
+                  title="Table view"
+                >
+                  📋
+                </button>
+                <button
+                  className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
+                  onClick={() => setDictionaryView('grid')}
+                  title="Grid view"
+                >
+                  ⊞
+                </button>
+              </div>
             </div>
           </div>
           <div className="card-content">
@@ -563,38 +596,18 @@ export default function App() {
               {selectedWords.length > 0 ? (
                 <div className="word-selection-info">
                   <span className="selection-count">
-                    {selectedWords.length} of {filteredWords.length} words selected for training
+                    {selectedWords.length} of {filteredWords.length} words selected
                   </span>
-                  <div className="selection-actions">
-                    <button
-                      className="btn btn--primary"
-                      onClick={() => {
-                        const ids = Array.from(selectedWordIds);
-                        const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
-                        setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
-                        setShowRoundStartModal(true);
-                      }}
-                    >
-                      Start Round
-                    </button>
-                    <button
-                      className="clear-selection-btn"
-                      onClick={clearWordSelection}
-                      title="Clear selection"
-                    >
-                      Clear Selection
-                    </button>
-                  </div>
+                  <button
+                    className="clear-selection-btn"
+                    onClick={clearWordSelection}
+                    title="Clear selection"
+                  >
+                    Clear Selection
+                  </button>
                 </div>
               ) : dictionaryView === 'grid' && filteredWords.length > 0 && (
                 <div className="bulk-selection">
-                  <button
-                    className="select-all-btn"
-                    onClick={selectAllWords}
-                    title="Select all words"
-                  >
-                    Select All Words
-                  </button>
                 </div>
               )}
             </div>
@@ -628,7 +641,7 @@ export default function App() {
                             type="checkbox"
                             checked={selectedWordIds.has(w._id)}
                             onChange={() => toggleWordSelection(w._id)}
-                            title={`Select "${w.text}" for training`}
+                            title={`Select "${w.text}"`}
                           />
                         </td>
                         <td>{w.text}</td>
@@ -664,7 +677,7 @@ export default function App() {
                   setCurrentId(wordId);
                   startTimer();
                 }}
-                maxTimeMs={maxTimeMs ? Number(maxTimeMs) : undefined}
+                maxTimeMs={3000}
               />
             )}
           </div>
@@ -678,9 +691,10 @@ export default function App() {
         isOpen={showRoundStartModal}
         onClose={() => setShowRoundStartModal(false)}
         onConfirm={handleRoundStart}
-        wordCount={pendingRoundSettings?.wordIds.length || 0}
-        repsPerWord={pendingRoundSettings?.repsPerWord || 0}
-        maxTimeMs={pendingRoundSettings?.maxTimeMs}
+        wordCounts={wordCounts}
+        getWordsBySource={getWordsBySource}
+        hasSelectedWords={selectedWordIds.size > 0}
+        currentFilter={dictionaryFilter}
       />
 
       <RoundCompleteModal
@@ -694,21 +708,7 @@ export default function App() {
         maxTimeMs={roundState?.round?.maxTimeMs}
       />
 
-      {/* Mobile Floating Action Button */}
-      {selectedWordIds.size > 0 && (
-        <button
-          className="fab mobile-start-round"
-          onClick={() => {
-            const ids = Array.from(selectedWordIds);
-            const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) : undefined;
-            setPendingRoundSettings({ wordIds: ids, repsPerWord, maxTimeMs: maxMs });
-            setShowRoundStartModal(true);
-          }}
-          title={`Start round with ${selectedWordIds.size} selected words`}
-        >
-          🚀
-        </button>
-      )}
+
 
       {/* Toast Notifications */}
       <Toast toasts={toast.toasts} onRemove={toast.removeToast} />

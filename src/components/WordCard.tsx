@@ -58,16 +58,12 @@ export default function WordCard({
     onToggleSelection(word._id);
   };
 
-  const handlePracticeClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onWordClick(word._id);
-  };
 
   return (
     <div
       className={`word-card ${performanceLevel} ${isSelected ? 'selected' : ''}`}
       onClick={handleCardClick}
-      title={`Click to ${isSelected ? 'deselect' : 'select'} "${word.text}" for training`}
+      title={`Click to ${isSelected ? 'deselect' : 'select'} "${word.text}"`}
       tabIndex={0}
       role="option"
       aria-selected={isSelected}
@@ -121,13 +117,6 @@ export default function WordCard({
 
       {/* Action buttons */}
       <div className="card-actions">
-        <button
-          className="btn btn--primary btn--sm"
-          onClick={handlePracticeClick}
-          title={`Practice "${word.text}"`}
-        >
-          Practice
-        </button>
         <button
           className="btn btn--ghost btn--sm"
           onClick={(e) => {

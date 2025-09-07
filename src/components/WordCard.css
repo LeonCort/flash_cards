@@ -8,6 +8,7 @@
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
+  width: 280px; /* Fixed width for consistent grid */
   min-height: 140px; /* Minimum height but allow growth */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   user-select: none; /* Prevent text selection when clicking */
@@ -235,32 +236,31 @@
   50% { transform: translateY(-2px); }
 }
 
-/* Grid layout - Fixed 2x2 layout */
+/* Grid layout - Responsive cards with consistent sizing */
 .words-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
   gap: var(--space-4);
   padding: var(--space-4) 0;
+  width: 100%;
+  justify-content: center;
 }
 
 .word-card {
-  width: 100%;
-  max-width: 280px;
-  min-width: 240px;
-  justify-self: center;
+  width: 100%; /* Take full width of grid cell */
+  min-height: 140px; /* Minimum height, can grow as needed */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .words-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 220px));
     gap: var(--space-3);
   }
 
   .word-card {
-    min-height: 120px; /* Smaller minimum height for mobile */
+    min-height: 120px; /* Smaller minimum height for tablets */
     padding: var(--space-3);
-    max-width: none;
-    min-width: 160px;
   }
 
   .word-text {
@@ -286,13 +286,13 @@
 
 @media (max-width: 480px) {
   .words-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 180px));
     gap: var(--space-2);
   }
 
   .word-card {
-    min-height: 100px; /* Even smaller minimum for small screens */
+    min-height: 100px; /* Even smaller minimum height for mobile */
     padding: var(--space-2);
-    min-width: 140px;
   }
 
   .word-text {
