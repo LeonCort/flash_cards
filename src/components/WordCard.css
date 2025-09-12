@@ -240,7 +240,8 @@
 .words-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
-  gap: var(--space-4);
+  column-gap: var(--space-4);
+  row-gap: calc(var(--space-4) + 6px);
   padding: var(--space-4) 0;
   width: 100%;
   justify-content: center;
@@ -255,7 +256,8 @@
 @media (max-width: 768px) {
   .words-grid {
     grid-template-columns: repeat(auto-fit, minmax(180px, 220px));
-    gap: var(--space-3);
+    column-gap: var(--space-3);
+    row-gap: calc(var(--space-3) + 6px);
   }
 
   .word-card {
@@ -287,7 +289,8 @@
 @media (max-width: 480px) {
   .words-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 180px));
-    gap: var(--space-2);
+    column-gap: var(--space-2);
+    row-gap: calc(var(--space-2) + 6px);
   }
 
   .word-card {

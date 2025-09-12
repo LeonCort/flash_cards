@@ -103,7 +103,7 @@
 
 .rightPane {
   color: var(--panel-text);
-  padding: 20px;
+  padding: 0;
   width: 100%;
 }
 
@@ -461,7 +461,7 @@ td[data-stat="percentage"][data-value="low"] {
 }
 
 .card-content {
-  padding: 20px;
+  padding: 16px;
 }
 
 
@@ -738,3 +738,118 @@ td:first-child {
     gap: var(--space-1);
   }
 }
+
+
+/* Dictionary header title */
+.title-with-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.title-with-chip .chip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.title-with-chip .title-text {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.title-with-chip .title-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Add-word scope helper */
+.adding-to {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: -6px;
+  margin-bottom: 12px;
+}
+.adding-to .chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.adding-to .adding-to-name {
+  font-weight: 600;
+  color: var(--panel-text);
+}
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.link-btn:hover { text-decoration: underline; }
+
+
+/* --- Responsive polish --- */
+/* Make card headers wrap gracefully and keep actions usable on small screens */
+.card-header { flex-wrap: wrap; gap: 10px; }
+.header-actions { display: flex; gap: 8px; margin-left: auto; }
+
+@media (max-width: 860px) {
+  .card-header { align-items: flex-start; }
+  .header-actions { flex-wrap: wrap; }
+}
+
+@media (max-width: 768px) {
+  /* Stack header content and make actions full-width grid */
+  .card-header { flex-direction: column; align-items: stretch; gap: 8px; }
+  .header-actions { width: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+  .title-with-chip .title-text { font-size: 16px; }
+  .title-with-chip .title-count { font-size: 11px; }
+
+  /* Filters: use horizontal scroll instead of wrapping to many rows */
+  .filter-buttons { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; margin: 0 -8px; padding-left: 8px; }
+  .filter-btn { white-space: nowrap; }
+  .filter-buttons::-webkit-scrollbar { height: 6px; }
+  .filter-buttons::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Reset stats button: full width on mobile for easier tapping */
+  .reset-stats-btn { width: 100%; justify-content: center; }
+
+  /* View toggle compact on mobile */
+  .view-btn { padding: 4px 8px; }
+}
+
+
+/* --- Header More menu (compact actions) --- */
+.more-menu { position: relative; }
+.more-menu .dropdown {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 200px;
+  box-shadow: var(--elev);
+  z-index: 20;
+}
+.dropdown-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.dropdown-item:hover { background: var(--hover-bg); }
+.dropdown-item.destructive { color: #ef4444; font-weight: 600; }
+.dropdown-item.destructive:hover { background: rgba(239, 68, 68, 0.12); }
+
+/* Slightly increase table row vertical spacing */
+tbody td { padding-top: calc(var(--space-3) + 2px); padding-bottom: calc(var(--space-3) + 2px); }

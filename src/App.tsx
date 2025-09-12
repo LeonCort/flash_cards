@@ -6,8 +6,9 @@ import RoundCompleteModal from "./components/RoundCompleteModal";
 
 import FocusFlashcard from "./components/FocusFlashcard";
 import DictionaryGrid from "./components/DictionaryGrid";
-import DictionarySelector from "./components/DictionarySelector";
 import DictionaryManagementModal from "./components/DictionaryManagementModal";
+import HeaderDictionaryDropdown from "./components/HeaderDictionaryDropdown";
+import AddWordModal from "./components/AddWordModal";
 import Toast from "./components/Toast";
 import { useToast } from "./hooks/useToast";
 import "./App.css";
@@ -25,6 +26,9 @@ export default function App() {
 
   const dictionaries = useQuery(api.dictionaries.list) ?? [];
   const firstDictionary = useQuery(api.dictionaries.getFirstDictionary);
+  const activeDictionary = useMemo(() =>
+    (dictionaries || []).find((d: any) => d._id === activeDictionaryId) || null,
+  [dictionaries, activeDictionaryId]);
 
   // Auto-select first dictionary if none is selected
   useEffect(() => {
@@ -102,6 +106,20 @@ export default function App() {
   const [dictionaryFilter, setDictionaryFilter] = useState<'all' | 'non-cleared' | 'not-tested' | 'difficult'>('all');
 
   // Word selection functions
+
+  // Header "More" dropdown
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
   const toggleWordSelection = (wordId: string) => {
     setSelectedWordIds(prev => {
       const newSet = new Set(prev);
@@ -196,28 +214,22 @@ export default function App() {
   const [showRoundStartModal, setShowRoundStartModal] = useState(false);
   const [showRoundCompleteModal, setShowRoundCompleteModal] = useState(false);
   const [showDictionaryManagementModal, setShowDictionaryManagementModal] = useState(false);
+  const [showAddWordModal, setShowAddWordModal] = useState(false);
 
-  // Quick-add form
-  const [newWord, setNewWord] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const onAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const text = newWord.trim();
-    if (!text) return;
-
+  // Add word handler (used by modal)
+  const onAddWord = async (text: string) => {
+    const word = text.trim();
+    if (!word) return;
     if (!activeDictionaryId) {
-      setError("Please select a dictionary first");
+      toast.error("Please select a dictionary first");
       return;
     }
-
     try {
-      await addWord({ text, dictionaryId: activeDictionaryId as any });
-      setNewWord("");
-      toast.success(`Added "${text}" to dictionary`);
+      await addWord({ text: word, dictionaryId: activeDictionaryId as any });
+      toast.success(`Added "${word}" to ${activeDictionary?.name ?? 'dictionary'}`);
     } catch (err: any) {
-      setError(err?.message ?? "Failed to add word");
+      toast.error(err?.message ?? "Failed to add word");
+      throw err;
     }
   };
 
@@ -588,14 +600,27 @@ export default function App() {
       <div className="rightPane">
 
         {/* Word List Card */}
-        <div className="management-card">
+        <div className="management-card" style={{ borderTop: `3px solid ${activeDictionary?.color || 'var(--accent)'}` }}>
           <div className="card-header">
-            <h3>Word List</h3>
+            <HeaderDictionaryDropdown
+              dictionaries={dictionaries}
+              activeDictionaryId={activeDictionaryId}
+              onSelect={setActiveDictionaryId}
+              onCreateNew={() => setShowDictionaryManagementModal(true)}
+            />
             <div className="header-actions">
+              <button
+                className="btn btn--secondary btn--sm"
+                onClick={() => setShowAddWordModal(true)}
+                title={`Add a word to “${activeDictionary?.name ?? 'Dictionary'}”`}
+                disabled={!activeDictionaryId}
+              >
+                + Add Word
+              </button>
               <button
                 className="btn btn--primary btn--sm"
                 onClick={() => setShowRoundStartModal(true)}
-                title="Start practice session"
+                title={`Practice in “${activeDictionary?.name ?? 'Dictionary'}”`}
               >
                 Practice
               </button>
@@ -615,30 +640,36 @@ export default function App() {
                   ⊞
                 </button>
               </div>
+              <div className="more-menu" ref={moreRef}>
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => setMoreOpen(o => !o)}
+                  aria-expanded={moreOpen}
+                  title="More actions"
+                >
+                  ⋯
+                </button>
+                {moreOpen && (
+                  <div className="dropdown">
+                    <button
+                      className="dropdown-item destructive"
+                      onClick={() => {
+                        setMoreOpen(false);
+                        if (confirm(`Reset stats in "${activeDictionary?.name ?? 'this dictionary'}"? This cannot be undone.`)) {
+                          resetStats({ dictionaryId: activeDictionaryId } as any);
+                        }
+                      }}
+                      title={`Reset all word statistics in "${activeDictionary?.name ?? 'this dictionary'}"`}
+                      disabled={words.length === 0}
+                    >
+                      🗑️ Reset Stats in {activeDictionary?.name ?? 'Dictionary'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="card-content">
-            {/* Dictionary Selector */}
-            <DictionarySelector
-              dictionaries={dictionaries}
-              activeDictionaryId={activeDictionaryId}
-              onDictionaryChange={setActiveDictionaryId}
-              onCreateDictionary={() => setShowDictionaryManagementModal(true)}
-              onManageDictionaries={() => setShowDictionaryManagementModal(true)}
-            />
-
-            {/* Add Word Action */}
-            <form className="addRow" onSubmit={onAdd}>
-              <input
-                placeholder="Add a word"
-                value={newWord}
-                onChange={e => setNewWord(e.target.value)}
-                aria-label="New word"
-              />
-              <button className="btn btn--secondary" type="submit">Add</button>
-            </form>
-            {error && <div className="error">{error}</div>}
-            {/* Filters */}
             <div className="filter-buttons">
                 <button
                   className={`filter-btn ${dictionaryFilter === 'all' ? 'active' : ''}`}
@@ -668,17 +699,7 @@ export default function App() {
                 >
                   Difficult
                 </button>
-                <button
-                  className="btn btn--destructive btn--sm"
-                  onClick={() => {
-                    if (confirm("Are you sure you want to reset all word statistics in this dictionary? This cannot be undone.")) {
-                      resetStats({ dictionaryId: activeDictionaryId } as any);
-                    }
-                  }}
-                  title="Reset all word statistics"
-                >
-                  🗑️ Reset All Stats
-                </button>
+
               </div>
 
             {/* Word Selection Info & Bulk Actions */}
@@ -702,6 +723,9 @@ export default function App() {
               )}
             </div>
 
+
+
+
             {dictionaryView === 'table' ? (
               <div className="tableWrap">
                 <table>
@@ -724,6 +748,7 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
+
                     {filteredWords.map((w: any) => (
                       <tr key={w._id}>
                         <td>
@@ -796,6 +821,14 @@ export default function App() {
         totalCount={roundState?.total || 0}
         repsPerWord={roundState?.round?.repsPerWord || 0}
         maxTimeMs={roundState?.round?.maxTimeMs}
+      />
+
+
+      <AddWordModal
+        isOpen={showAddWordModal}
+        onClose={() => setShowAddWordModal(false)}
+        onSubmit={onAddWord}
+        dictionaryName={activeDictionary?.name || null}
       />
 
       <DictionaryManagementModal
