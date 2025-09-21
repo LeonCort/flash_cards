@@ -77,11 +77,74 @@ export const checkMigrationStatus = internalQuery({
       .collect()
       .then(words => words.filter(w => !('dictionaryId' in w) || !w.dictionaryId).length);
 
+    const dictionariesWithoutUser = await ctx.db
+      .query("dictionaries")
+      .collect()
+      .then(dicts => dicts.filter(d => !d.userId && !d.sessionId).length);
+
+    const wordsWithoutUser = await ctx.db
+      .query("words")
+      .collect()
+      .then(words => words.filter(w => !w.userId && !w.sessionId).length);
+
     return {
       dictionariesExist: dictionariesCount > 0,
       dictionariesCount,
       wordsWithoutDictionary,
+      dictionariesWithoutUser,
+      wordsWithoutUser,
       migrationNeeded: dictionariesCount === 0 && wordsWithoutDictionary > 0,
+      userMigrationNeeded: dictionariesWithoutUser > 0 || wordsWithoutUser > 0,
+    };
+  },
+});
+
+/**
+ * Migrate existing data to add user scoping.
+ * Assigns all existing dictionaries/words to a default sessionId.
+ */
+export const migrateToUserScoping = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const defaultSessionId = "legacy-data";
+
+    // Migrate dictionaries
+    const dictionaries = await ctx.db
+      .query("dictionaries")
+      .collect();
+
+    for (const dict of dictionaries) {
+      if (!dict.userId && !dict.sessionId) {
+        await ctx.db.patch(dict._id, { sessionId: defaultSessionId });
+      }
+    }
+
+    // Migrate words
+    const words = await ctx.db
+      .query("words")
+      .collect();
+
+    for (const word of words) {
+      if (!word.userId && !word.sessionId) {
+        await ctx.db.patch(word._id, { sessionId: defaultSessionId });
+      }
+    }
+
+    // Migrate rounds
+    const rounds = await ctx.db
+      .query("rounds")
+      .collect();
+
+    for (const round of rounds) {
+      if (!round.userId && !round.sessionId) {
+        await ctx.db.patch(round._id, { sessionId: defaultSessionId });
+      }
+    }
+
+    return {
+      migratedDictionaries: dictionaries.filter(d => !d.userId && !d.sessionId).length,
+      migratedWords: words.filter(w => !w.userId && !w.sessionId).length,
+      migratedRounds: rounds.filter(r => !r.userId && !r.sessionId).length,
     };
   },
 });

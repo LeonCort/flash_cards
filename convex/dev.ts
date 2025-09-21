@@ -14,6 +14,15 @@ export const runMigration = mutation({
   },
 });
 
+export const runUserScopingMigration = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Run the user scoping migration
+    await ctx.scheduler.runAfter(0, internal.migration.migrateToUserScoping);
+    return { success: true, message: "User scoping migration scheduled" };
+  },
+});
+
 /**
  * Check migration status
  */

@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getCurrentIdentity } from "./auth";
 
 export const add = mutation({
   args: {
@@ -7,14 +8,23 @@ export const add = mutation({
     dictionaryId: v.id("dictionaries"),
     tags: v.optional(v.array(v.string())),
     gradeLevel: v.optional(v.union(v.string(), v.number())),
+    sessionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const text = args.text.trim().toLowerCase();
     if (!text) throw new Error("Word cannot be empty");
 
-    // Verify dictionary exists and is active
+    const { userId, sessionId } = await getCurrentIdentity(ctx, args.sessionId);
+
+    // Verify dictionary exists and is active and belongs to user
     const dictionary = await ctx.db.get(args.dictionaryId);
     if (!dictionary || !dictionary.active) {
+      throw new Error("Dictionary not found");
+    }
+
+    // Verify user owns this dictionary
+    const ownsDict = userId ? dictionary.userId === userId : dictionary.sessionId === sessionId;
+    if (!ownsDict) {
       throw new Error("Dictionary not found");
     }
 
@@ -33,6 +43,8 @@ export const add = mutation({
       active: true,
       tags: args.tags ?? [],
       gradeLevel: args.gradeLevel,
+      userId,
+      sessionId,
     });
     return id;
   },

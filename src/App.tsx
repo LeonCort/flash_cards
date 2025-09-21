@@ -44,8 +44,8 @@ export default function App() {
     localStorage.getItem("activeDictionaryId")
   );
 
-  const dictionaries = useQuery(api.dictionaries.list) ?? [];
-  const firstDictionary = useQuery(api.dictionaries.getFirstDictionary);
+  const dictionaries = useQuery(api.dictionaries.list, { sessionId: isAuthed ? undefined : deviceId }) ?? [];
+  const firstDictionary = useQuery(api.dictionaries.getFirstDictionary, { sessionId: isAuthed ? undefined : deviceId });
   const activeDictionary = useMemo(() =>
     (dictionaries || []).find((d: any) => d._id === activeDictionaryId) || null,
   [dictionaries, activeDictionaryId]);
@@ -245,7 +245,7 @@ export default function App() {
       return;
     }
     try {
-      await addWord({ text: word, dictionaryId: activeDictionaryId as any });
+      await addWord({ text: word, dictionaryId: activeDictionaryId as any, sessionId: isAuthed ? undefined : deviceId });
       toast.success(`Added "${word}" to ${activeDictionary?.name ?? 'dictionary'}`);
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to add word");
@@ -256,7 +256,7 @@ export default function App() {
   // Dictionary management handlers
   const handleCreateDictionary = async (data: { name: string; description?: string; color?: string }) => {
     try {
-      const dictionaryId = await createDictionary(data);
+      const dictionaryId = await createDictionary({ ...data, sessionId: isAuthed ? undefined : deviceId });
       toast.success(`Created dictionary "${data.name}"`);
       setActiveDictionaryId(dictionaryId as any);
     } catch (err: any) {
@@ -422,7 +422,8 @@ export default function App() {
     const rid = await startRound({
       wordIds,
       repsPerWord: settings.repsPerWord,
-      maxTimeMs: settings.maxTimeMs
+      maxTimeMs: settings.maxTimeMs,
+      sessionId: isAuthed ? undefined : deviceId
     } as any);
 
     setActiveRoundId(rid as any);

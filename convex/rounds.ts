@@ -1,18 +1,24 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getCurrentIdentity } from "./auth";
 
 export const start = mutation({
   args: {
     wordIds: v.array(v.id("words")),
     repsPerWord: v.number(),
     maxTimeMs: v.optional(v.number()),
+    sessionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { userId, sessionId } = await getCurrentIdentity(ctx, args.sessionId);
+
     const roundId = await ctx.db.insert("rounds", {
       createdAt: Date.now(),
       status: "active",
       repsPerWord: args.repsPerWord,
       maxTimeMs: args.maxTimeMs,
+      userId,
+      sessionId,
     });
     await Promise.all(
       args.wordIds.map((w) =>

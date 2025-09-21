@@ -11,7 +11,14 @@ export default defineSchema({
     createdAt: v.number(),
     active: v.boolean(),
     color: v.optional(v.string()), // For UI theming
-  }).index("by_active", ["active"]),
+    userId: v.optional(v.string()), // Owner when authenticated
+    sessionId: v.optional(v.string()), // Owner when anonymous (deviceId)
+  })
+    .index("by_active", ["active"])
+    .index("by_user", ["userId"])
+    .index("by_session", ["sessionId"])
+    .index("by_user_active", ["userId", "active"])
+    .index("by_session_active", ["sessionId", "active"]),
 
   words: defineTable({
     text: v.string(),
@@ -21,10 +28,16 @@ export default defineSchema({
     tags: v.optional(v.array(v.string())),
     gradeLevel: v.optional(v.union(v.string(), v.number())),
     resetAt: v.optional(v.number()), // Soft reset cutoff; attempts before this are ignored
+    userId: v.optional(v.string()), // Owner when authenticated
+    sessionId: v.optional(v.string()), // Owner when anonymous (deviceId)
   })
     .index("by_text_and_dictionary", ["text", "dictionaryId"]) // Prevent duplicates per dictionary
     .index("by_dictionary", ["dictionaryId"])
-    .index("by_dictionary_and_active", ["dictionaryId", "active"]),
+    .index("by_dictionary_and_active", ["dictionaryId", "active"])
+    .index("by_user", ["userId"])
+    .index("by_session", ["sessionId"])
+    .index("by_user_dictionary", ["userId", "dictionaryId"])
+    .index("by_session_dictionary", ["sessionId", "dictionaryId"]),
 
   attempts: defineTable({
     wordId: v.id("words"),
@@ -43,7 +56,11 @@ export default defineSchema({
     status: v.string(), // "active" | "done"
     repsPerWord: v.number(),
     maxTimeMs: v.optional(v.number()),
-  }),
+    userId: v.optional(v.string()), // Owner when authenticated
+    sessionId: v.optional(v.string()), // Owner when anonymous (deviceId)
+  })
+    .index("by_user", ["userId"])
+    .index("by_session", ["sessionId"]),
 
   roundItems: defineTable({
     roundId: v.id("rounds"),

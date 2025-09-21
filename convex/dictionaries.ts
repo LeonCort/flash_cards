@@ -1,20 +1,27 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getCurrentIdentity } from "./auth";
 
 export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
+    sessionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const name = args.name.trim();
     if (!name) throw new Error("Dictionary name cannot be empty");
 
-    // Check if dictionary with this name already exists
+    const { userId, sessionId } = await getCurrentIdentity(ctx, args.sessionId);
+
+    // Check if dictionary with this name already exists for this user
     const existing = await ctx.db
       .query("dictionaries")
-      .filter(q => q.eq(q.field("name"), name))
+      .filter(q => q.and(
+        q.eq(q.field("name"), name),
+        userId ? q.eq(q.field("userId"), userId) : q.eq(q.field("sessionId"), sessionId)
+      ))
       .first();
     if (existing) throw new Error("Dictionary with this name already exists");
 
@@ -24,17 +31,26 @@ export const create = mutation({
       createdAt: Date.now(),
       active: true,
       color: args.color,
+      userId,
+      sessionId,
     });
     return id;
   },
 });
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    sessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { userId, sessionId } = await getCurrentIdentity(ctx, args.sessionId);
+
     const dictionaries = await ctx.db
       .query("dictionaries")
-      .withIndex("by_active", q => q.eq("active", true))
+      .filter(q => q.and(
+        q.eq(q.field("active"), true),
+        userId ? q.eq(q.field("userId"), userId) : q.eq(q.field("sessionId"), sessionId)
+      ))
       .collect();
 
     // Get word counts for each dictionary
@@ -42,7 +58,7 @@ export const list = query({
     for (const dict of dictionaries) {
       const wordCount = await ctx.db
         .query("words")
-        .withIndex("by_dictionary_and_active", q => 
+        .withIndex("by_dictionary_and_active", q =>
           q.eq("dictionaryId", dict._id).eq("active", true))
         .collect()
         .then(words => words.length);
@@ -153,13 +169,20 @@ export const remove = mutation({
 });
 
 export const getFirstDictionary = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    sessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { userId, sessionId } = await getCurrentIdentity(ctx, args.sessionId);
+
     const dictionary = await ctx.db
       .query("dictionaries")
-      .withIndex("by_active", q => q.eq("active", true))
+      .filter(q => q.and(
+        q.eq(q.field("active"), true),
+        userId ? q.eq(q.field("userId"), userId) : q.eq(q.field("sessionId"), sessionId)
+      ))
       .first();
-    
+
     return dictionary;
   },
 });
