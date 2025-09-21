@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import './RoundStartModal.css';
 
-export type WordSource = 'all' | 'non-cleared' | 'difficult' | 'custom';
+export type WordSource = 'all' | 'non-cleared' | 'difficult' | 'custom' | 'random';
 
 interface RoundStartModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (settings: { repsPerWord: number; maxTimeMs?: number; wordSource: WordSource }) => void;
+  onConfirm: (settings: { repsPerWord: number; maxTimeMs?: number; wordSource: WordSource; randomCount?: number }) => void;
   wordCounts: {
     all: number;
     nonCleared: number;
     difficult: number;
     custom: number;
+    random: number;
   };
   getWordsBySource: (source: WordSource) => any[];
   hasSelectedWords: boolean;
@@ -46,6 +47,7 @@ export default function RoundStartModal({
   const [repsPerWord, setRepsPerWord] = useState(3);
   const [maxTimeMs, setMaxTimeMs] = useState('3');
   const [wordSource, setWordSource] = useState<WordSource>(getInitialWordSource());
+  const [randomCount, setRandomCount] = useState(10);
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
   // Update word source when modal opens or selection changes
@@ -61,17 +63,29 @@ export default function RoundStartModal({
       case 'non-cleared': return wordCounts.nonCleared;
       case 'difficult': return wordCounts.difficult;
       case 'custom': return wordCounts.custom;
+      case 'random': return Math.min(randomCount, wordCounts.all);
       default: return 0;
     }
   };
 
   const getCurrentWords = () => {
+    if (wordSource === 'random') {
+      const allWords = getWordsBySource('all');
+      // Shuffle and take the first randomCount words
+      const shuffled = [...allWords].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, randomCount);
+    }
     return getWordsBySource(wordSource);
   };
 
   const handleConfirm = () => {
     const maxMs = maxTimeMs.trim() ? Number(maxTimeMs) * 1000 : undefined;
-    onConfirm({ repsPerWord, maxTimeMs: maxMs, wordSource });
+    onConfirm({
+      repsPerWord,
+      maxTimeMs: maxMs,
+      wordSource,
+      randomCount: wordSource === 'random' ? randomCount : undefined
+    });
     onClose();
   };
 
@@ -129,11 +143,29 @@ export default function RoundStartModal({
                   <option value="all">All ({wordCounts.all})</option>
                   <option value="non-cleared">Non-cleared ({wordCounts.nonCleared})</option>
                   <option value="difficult">Difficult ({wordCounts.difficult})</option>
+                  <option value="random">Random ({Math.min(randomCount, wordCounts.all)})</option>
                   <option value="custom" disabled={wordCounts.custom === 0}>
                     Custom ({wordCounts.custom})
                   </option>
                 </select>
               </div>
+
+              {wordSource === 'random' && (
+                <div className="setting-group">
+                  <label htmlFor="randomCount" className="setting-label">
+                    Number of random words
+                  </label>
+                  <input
+                    id="randomCount"
+                    type="number"
+                    value={randomCount}
+                    onChange={(e) => setRandomCount(Math.max(1, Number(e.target.value)))}
+                    className="setting-input"
+                    min="1"
+                    max={wordCounts.all}
+                  />
+                </div>
+              )}
 
               <div className="setting-group">
                 <label htmlFor="repsPerWord" className="setting-label">

@@ -234,6 +234,8 @@ export default function App() {
         });
       case 'custom':
         return selectedWords;
+      case 'random':
+        return words; // Random selection will be handled in the modal
       default:
         return [];
     }
@@ -249,7 +251,8 @@ export default function App() {
       const isSlowTypical = w.stats.typicalTimeMs && w.stats.typicalTimeMs > 3000;
       return accuracy < 70 || isSlowTypical;
     }).length,
-    custom: selectedWords.length
+    custom: selectedWords.length,
+    random: words.length // Random can use any number up to total words
   };
 
   // Modal states
@@ -435,8 +438,15 @@ export default function App() {
 
 
   // Modal handlers
-  const handleRoundStart = async (settings: { repsPerWord: number; maxTimeMs?: number; wordSource: WordSource }) => {
-    const wordsForRound = getWordsBySource(settings.wordSource);
+  const handleRoundStart = async (settings: { repsPerWord: number; maxTimeMs?: number; wordSource: WordSource; randomCount?: number }) => {
+    let wordsForRound = getWordsBySource(settings.wordSource);
+
+    // Handle random selection
+    if (settings.wordSource === 'random' && settings.randomCount) {
+      const shuffled = [...wordsForRound].sort(() => Math.random() - 0.5);
+      wordsForRound = shuffled.slice(0, settings.randomCount);
+    }
+
     if (wordsForRound.length === 0) return;
 
     const wordIds = wordsForRound.map((w: any) => w._id);
