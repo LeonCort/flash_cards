@@ -6,7 +6,6 @@ interface DictionaryGridProps {
   selectedWordIds: Set<string>;
   onToggleSelection: (wordId: string) => void;
   onReset: (wordId: string) => void;
-  onWordClick: (wordId: string) => void;
   maxTimeMs?: number;
 }
 
@@ -15,7 +14,6 @@ export default function DictionaryGrid({
   selectedWordIds,
   onToggleSelection,
   onReset,
-  onWordClick,
   maxTimeMs
 }: DictionaryGridProps) {
   if (words.length === 0) {
@@ -44,7 +42,6 @@ export default function DictionaryGrid({
           isSelected={selectedWordIds.has(word._id)}
           onToggleSelection={onToggleSelection}
           onReset={onReset}
-          onWordClick={onWordClick}
           maxTimeMs={maxTimeMs}
         />
       ))}

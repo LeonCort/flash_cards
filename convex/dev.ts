@@ -9,7 +9,7 @@ export const runMigration = mutation({
   args: {},
   handler: async (ctx) => {
     // Run the migration
-    const result = await ctx.scheduler.runAfter(0, internal.migration.migrateToMultipleDictionaries);
+    await ctx.scheduler.runAfter(0, internal.migration.migrateToMultipleDictionaries);
     return { success: true, message: "Migration scheduled" };
   },
 });

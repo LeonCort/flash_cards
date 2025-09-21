@@ -16,7 +16,7 @@ interface FocusFlashcardProps {
       maxTimeMs?: number;
     };
   };
-  isRoundComplete: boolean;
+
 
   // Performance tracking
   streak?: number;
@@ -29,7 +29,7 @@ export default function FocusFlashcard({
   onReset,
   flipping,
   roundState,
-  isRoundComplete,
+
   streak = 0
 }: FocusFlashcardProps) {
   const formatTime = (ms: number) => {

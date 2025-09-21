@@ -13,12 +13,32 @@ import Toast from "./components/Toast";
 import { useToast } from "./hooks/useToast";
 import "./App.css";
 
+import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
+
 function msFmt(ms: number | null | undefined) {
   if (ms == null) return "—";
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
 export default function App() {
+  // Auth and device identity
+  const { signIn, signOut } = useAuthActions();
+  const authToken = useAuthToken();
+  const isAuthed = !!authToken;
+  const [deviceId] = useState<string>(() => {
+    try {
+      let id = localStorage.getItem("deviceId");
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem("deviceId", id);
+      }
+      return id as string;
+    } catch {
+      // Fallback if localStorage is unavailable
+      return "anon";
+    }
+  });
+
   // Dictionary state management
   const [activeDictionaryId, setActiveDictionaryId] = useState<string | null>(() =>
     localStorage.getItem("activeDictionaryId")
@@ -86,7 +106,7 @@ export default function App() {
 
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
-  const [sessionAccuracy, setSessionAccuracy] = useState<number>(100);
+
   const [sessionAttempts, setSessionAttempts] = useState<number>(0);
   const [sessionCorrect, setSessionCorrect] = useState<number>(0);
 
@@ -359,7 +379,7 @@ export default function App() {
     if (activeRoundId) {
       await recordRound({ roundId: activeRoundId as any, wordId: currentWord._id, timeMs, correct: true });
     } else {
-      await recordAttempt({ wordId: currentWord._id, correct: true, timeMs });
+      await recordAttempt({ wordId: currentWord._id, correct: true, timeMs, sessionId: isAuthed ? undefined : deviceId });
     }
 
     // Update streak and accuracy - only increment streak if time limit is met
@@ -374,11 +394,7 @@ export default function App() {
 
     setSessionAttempts(prev => prev + 1);
     setSessionCorrect(prev => prev + 1);
-    setSessionAccuracy(prev => {
-      const newCorrect = sessionCorrect + 1;
-      const newAttempts = sessionAttempts + 1;
-      return Math.round((newCorrect / newAttempts) * 100);
-    });
+
 
     // Flip out, then change word, then flip in
     setFlipping(true);
@@ -393,27 +409,8 @@ export default function App() {
   };
 
   // Function to handle incorrect answers (resets streak)
-  const onIncorrect = useCallback(async () => {
-    if (!currentWord) return;
-    const timeMs = Date.now() - startRef.current;
 
-    if (activeRoundId) {
-      await recordRound({ roundId: activeRoundId as any, wordId: currentWord._id, timeMs, correct: false });
-    } else {
-      await recordAttempt({ wordId: currentWord._id, correct: false, timeMs });
-    }
 
-    // Reset streak on incorrect answer
-    setCurrentStreak(0);
-    setSessionAttempts(prev => prev + 1);
-    // Don't increment sessionCorrect for wrong answers
-    setSessionAccuracy(prev => {
-      const newAttempts = sessionAttempts + 1;
-      return Math.round((sessionCorrect / newAttempts) * 100);
-    });
-
-    startTimer(); // Reset timer for next attempt
-  }, [currentWord, activeRoundId, recordRound, recordAttempt, sessionCorrect, sessionAttempts]);
 
   // Modal handlers
   const handleRoundStart = async (settings: { repsPerWord: number; maxTimeMs?: number; wordSource: WordSource }) => {
@@ -433,7 +430,7 @@ export default function App() {
 
     // Reset session stats
     setCurrentStreak(0);
-    setSessionAccuracy(100);
+
     setSessionAttempts(0);
     setSessionCorrect(0);
 
@@ -538,7 +535,6 @@ export default function App() {
               onReset={onReset}
               flipping={flipping}
               roundState={roundState}
-              isRoundComplete={!!isRoundComplete}
               streak={currentStreak}
             />
           ) : (
@@ -651,6 +647,28 @@ export default function App() {
                 </button>
                 {moreOpen && (
                   <div className="dropdown">
+                    {!isAuthed ? (
+                      <form
+                        className="dropdown-form"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          void signIn("resend", formData);
+                          setMoreOpen(false);
+                        }}
+                      >
+                        <input name="email" type="email" placeholder="Email" required />
+                        <button className="dropdown-item" type="submit">Send sign-in link</button>
+                      </form>
+                    ) : (
+                      <button
+                        className="dropdown-item"
+                        onClick={() => { setMoreOpen(false); void signOut(); }}
+                        title="Sign out"
+                      >
+                        ↪ Sign out
+                      </button>
+                    )}
                     <button
                       className="dropdown-item destructive"
                       onClick={() => {
@@ -788,10 +806,6 @@ export default function App() {
                 selectedWordIds={selectedWordIds}
                 onToggleSelection={toggleWordSelection}
                 onReset={(wordId) => resetStats({ wordId } as any)}
-                onWordClick={(wordId) => {
-                  setCurrentId(wordId);
-                  startTimer();
-                }}
                 maxTimeMs={3000}
               />
             )}

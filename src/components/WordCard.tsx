@@ -14,7 +14,7 @@ interface WordCardProps {
   isSelected: boolean;
   onToggleSelection: (wordId: string) => void;
   onReset: (wordId: string) => void;
-  onWordClick: (wordId: string) => void;
+
   maxTimeMs?: number; // For determining if word has cleared time limit
 }
 
@@ -28,7 +28,7 @@ export default function WordCard({
   isSelected,
   onToggleSelection,
   onReset,
-  onWordClick,
+
   maxTimeMs
 }: WordCardProps) {
   // Determine performance indicators
