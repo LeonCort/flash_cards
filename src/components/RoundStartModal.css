@@ -149,7 +149,7 @@
   border-radius: 6px;
   background: var(--panel-bg);
   color: var(--panel-text);
-  font-size: 14px;
+  font-size: 16px;
   transition: border-color 0.2s ease;
 }
 

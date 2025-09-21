@@ -1,3 +1,8 @@
+/* Global styles - Prevent iOS Safari zoom on input focus */
+input, textarea, select {
+  font-size: max(16px, 1em);
+}
+
 /* Header */
 .header {
   position: sticky;
@@ -912,7 +917,7 @@ tbody td { padding-top: calc(var(--space-3) + 2px); padding-bottom: calc(var(--s
   border-radius: 4px;
   background: var(--input-bg);
   color: var(--panel-text);
-  font-size: 14px;
+  font-size: 16px;
   width: 160px;
 }
 
@@ -930,7 +935,7 @@ tbody td { padding-top: calc(var(--space-3) + 2px); padding-bottom: calc(var(--s
 
   .auth-input {
     width: 120px;
-    font-size: 12px;
+    font-size: 16px;
     padding: 4px 8px;
   }
 

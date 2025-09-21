@@ -149,6 +149,7 @@
   border-radius: 8px;
   background: var(--input-bg);
   color: var(--panel-text);
+  font-size: 16px;
 }
 .modal-actions {
   display: flex;
