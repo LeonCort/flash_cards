@@ -65,11 +65,12 @@ export default function HeaderDictionaryDropdown({
             top: 'calc(100% + 8px)',
             left: 0,
             minWidth: 260,
-            background: 'var(--card-bg)',
+            background: 'var(--panel-bg)', /* ensure visible background on all themes */
             color: 'var(--panel-text)',
             border: '1px solid var(--border)',
             borderRadius: 8,
             boxShadow: 'var(--elev)',
+            backdropFilter: 'blur(8px)',
             zIndex: 100
           }}
         >
@@ -111,7 +112,7 @@ export default function HeaderDictionaryDropdown({
                 style={{ width: '100%' }}
                 onClick={() => { setOpen(false); setQuery(''); onCreateNew(); }}
               >
-                ➕ Create new dictionary
+⚙️ Manage dictionaries
               </button>
             </div>
           )}

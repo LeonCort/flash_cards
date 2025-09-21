@@ -239,7 +239,7 @@
 /* Grid layout - Responsive cards with consistent sizing */
 .words-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
   column-gap: var(--space-4);
   row-gap: calc(var(--space-4) + 6px);
   padding: var(--space-4) 0;
@@ -255,9 +255,11 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .words-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 220px));
+    grid-template-columns: 1fr; /* Make cards wider (single column) on small screens */
     column-gap: var(--space-3);
     row-gap: calc(var(--space-3) + 6px);
+    justify-content: stretch;
+    padding: var(--space-2) 0; /* tighter spacing above/below grid on small */
   }
 
   .word-card {
@@ -270,7 +272,7 @@
   }
 
   .card-content {
-    margin: var(--space-4) 0 var(--space-2);
+    margin: var(--space-3) 0 var(--space-2); /* slightly tighter top margin */
   }
 
   .stat-row {
@@ -288,7 +290,7 @@
 
 @media (max-width: 480px) {
   .words-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 180px));
+    grid-template-columns: 1fr; /* Full-width cards on very small screens */
     column-gap: var(--space-2);
     row-gap: calc(var(--space-2) + 6px);
   }
@@ -342,7 +344,11 @@
 }
 
 .empty-message p {
-  margin: 0;
+  margin: 0 0 20px 0;
   font-size: 14px;
   opacity: 0.8;
+}
+
+.empty-message .btn {
+  margin-top: 8px;
 }

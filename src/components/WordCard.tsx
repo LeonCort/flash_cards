@@ -1,4 +1,5 @@
 import './WordCard.css';
+import WordActionsMenu from './WordActionsMenu';
 
 interface WordCardProps {
   word: {
@@ -14,7 +15,7 @@ interface WordCardProps {
   isSelected: boolean;
   onToggleSelection: (wordId: string) => void;
   onReset: (wordId: string) => void;
-
+  onDelete?: (wordId: string) => void;
   maxTimeMs?: number; // For determining if word has cleared time limit
 }
 
@@ -28,7 +29,7 @@ export default function WordCard({
   isSelected,
   onToggleSelection,
   onReset,
-
+  onDelete,
   maxTimeMs
 }: WordCardProps) {
   // Determine performance indicators
@@ -117,16 +118,14 @@ export default function WordCard({
 
       {/* Action buttons */}
       <div className="card-actions">
-        <button
-          className="btn btn--ghost btn--sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReset(word._id);
+        <WordActionsMenu
+          wordId={word._id}
+          wordText={word.text}
+          onResetStats={(wordId) => {
+            onReset(wordId);
           }}
-          title="Reset word statistics"
-        >
-          Reset
-        </button>
+          onDeleteWord={onDelete || (() => {})}
+        />
       </div>
     </div>
   );

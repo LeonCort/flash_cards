@@ -139,3 +139,40 @@ export const resetStats = mutation({
   },
 });
 
+export const deleteWord = mutation({
+  args: {
+    wordId: v.id("words"),
+    sessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { userId, sessionId } = await getCurrentIdentity(ctx, args.sessionId);
+
+    // Get the word to verify ownership
+    const word = await ctx.db.get(args.wordId);
+    if (!word || !word.active) {
+      throw new Error("Word not found");
+    }
+
+    // Verify user owns this word
+    const ownsWord = userId ? word.userId === userId : word.sessionId === sessionId;
+    if (!ownsWord) {
+      throw new Error("Word not found");
+    }
+
+    // Soft delete by setting active to false
+    await ctx.db.patch(args.wordId, { active: false });
+
+    // Also delete all attempts for this word to clean up data
+    const attempts = await ctx.db
+      .query("attempts")
+      .withIndex("by_word", q => q.eq("wordId", args.wordId))
+      .collect();
+
+    for (const attempt of attempts) {
+      await ctx.db.delete(attempt._id);
+    }
+
+    return { success: true };
+  },
+});
+

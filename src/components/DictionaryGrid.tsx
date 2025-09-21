@@ -6,7 +6,10 @@ interface DictionaryGridProps {
   selectedWordIds: Set<string>;
   onToggleSelection: (wordId: string) => void;
   onReset: (wordId: string) => void;
+  onDelete?: (wordId: string) => void;
   maxTimeMs?: number;
+  onAddWord?: () => void;
+  dictionaryName?: string;
 }
 
 export default function DictionaryGrid({
@@ -14,15 +17,26 @@ export default function DictionaryGrid({
   selectedWordIds,
   onToggleSelection,
   onReset,
-  maxTimeMs
+  onDelete,
+  maxTimeMs,
+  onAddWord,
+  dictionaryName
 }: DictionaryGridProps) {
   if (words.length === 0) {
     return (
       <div className="empty-grid">
         <div className="empty-message">
-          <span className="empty-icon">📚</span>
-          <h3>No words yet</h3>
-          <p>Add some words to start building your dictionary!</p>
+          <span className="empty-icon">✨</span>
+          <h3>Ready to add words!</h3>
+          <p>Start building your {dictionaryName ? `"${dictionaryName}"` : 'dictionary'} by adding your first word.</p>
+          {onAddWord && (
+            <button
+              className="btn btn--primary"
+              onClick={onAddWord}
+            >
+              ➕ Add Your First Word
+            </button>
+          )}
         </div>
       </div>
     );
@@ -42,6 +56,7 @@ export default function DictionaryGrid({
           isSelected={selectedWordIds.has(word._id)}
           onToggleSelection={onToggleSelection}
           onReset={onReset}
+          onDelete={onDelete}
           maxTimeMs={maxTimeMs}
         />
       ))}

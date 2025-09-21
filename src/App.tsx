@@ -9,6 +9,8 @@ import DictionaryGrid from "./components/DictionaryGrid";
 import DictionaryManagementModal from "./components/DictionaryManagementModal";
 import HeaderDictionaryDropdown from "./components/HeaderDictionaryDropdown";
 import AddWordModal from "./components/AddWordModal";
+import WordActionsMenu from "./components/WordActionsMenu";
+import SignInModal from "./components/SignInModal";
 import Toast from "./components/Toast";
 import { useToast } from "./hooks/useToast";
 import "./App.css";
@@ -80,6 +82,7 @@ export default function App() {
 
   // Resets and rounds
   const resetStats = useMutation(api.words.resetStats);
+  const deleteWord = useMutation(api.words.deleteWord);
   const startRound = useMutation(api.rounds?.start as any);
   const recordRound = useMutation(api.rounds?.record as any);
 
@@ -121,6 +124,25 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("dictionaryView", dictionaryView);
   }, [dictionaryView]);
+
+  // Small-screen detection to force grid and hide toggle
+  const [isSmall, setIsSmall] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 768px)').matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 768px)');
+    const onChange = () => setIsSmall(mql.matches);
+    onChange();
+    mql.addEventListener ? mql.addEventListener('change', onChange) : mql.addListener(onChange);
+    return () => {
+      mql.removeEventListener ? mql.removeEventListener('change', onChange) : mql.removeListener(onChange);
+    };
+  }, []);
+
+  const effectiveDictionaryView: 'table' | 'grid' = isSmall ? 'grid' : dictionaryView;
+
 
   // Dictionary filters
   const [dictionaryFilter, setDictionaryFilter] = useState<'all' | 'non-cleared' | 'not-tested' | 'difficult'>('all');
@@ -447,6 +469,27 @@ export default function App() {
     // Could optionally trigger the round start modal again
   };
 
+  const handleResetWordStats = async (wordId: string) => {
+    try {
+      await resetStats({ wordId: wordId as any });
+      toast.success("Word statistics reset");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reset statistics");
+    }
+  };
+
+  const handleDeleteWord = async (wordId: string) => {
+    try {
+      await deleteWord({
+        wordId: wordId as any,
+        sessionId: isAuthed ? undefined : deviceId
+      });
+      toast.success("Word deleted");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete word");
+    }
+  };
+
   // Spacebar keyboard shortcut for Next button
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -472,6 +515,8 @@ export default function App() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [currentWord, onNext]);
+
+  const [showSignInModal, setShowSignInModal] = useState(false);
 
   return (
     <>
@@ -521,6 +566,49 @@ export default function App() {
           >
             {focusMode ? "Exit Focus" : "Focus"}
           </button>
+
+          {/* Auth controls */}
+          <div className="auth-controls">
+            {!isAuthed ? (
+              <>
+                <form
+                  className="auth-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    void signIn("resend", formData);
+                  }}
+                >
+                  <input
+                    name="email"
+                    type="email"
+                    placeholder="Email"
+                    required
+                    className="auth-input"
+                  />
+                  <button className="btn btn--ghost btn--sm" type="submit">
+                    Sign In
+                  </button>
+                </form>
+                {/* Mobile-only sign in CTA */}
+                <button
+                  className="btn btn--ghost btn--sm auth-cta-mobile"
+                  type="button"
+                  onClick={() => setShowSignInModal(true)}
+                >
+                  Sign In
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={() => void signOut()}
+                title="Sign out"
+              >
+                Sign Out
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -595,9 +683,24 @@ export default function App() {
       </div>
 
       <div className="rightPane">
-
-        {/* Word List Card */}
-        <div className="management-card" style={{ borderTop: `3px solid ${activeDictionary?.color || 'var(--accent)'}` }}>
+        {dictionaries.length === 0 ? (
+          /* No dictionaries empty state */
+          <div className="empty-state-container">
+            <div className="empty-state">
+              <div className="empty-icon">📚</div>
+              <h2>Welcome to Flashcards!</h2>
+              <p>Create your first dictionary to start building your vocabulary collection.</p>
+              <button
+                className="btn btn--primary"
+                onClick={() => setShowDictionaryManagementModal(true)}
+              >
+                ➕ Create Your First Dictionary
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Word List Card */
+          <div className="management-card" style={{ borderTop: `3px solid ${activeDictionary?.color || 'var(--accent)'}` }}>
           <div className="card-header">
             <HeaderDictionaryDropdown
               dictionaries={dictionaries}
@@ -621,22 +724,24 @@ export default function App() {
               >
                 Practice
               </button>
-              <div className="view-toggle">
-                <button
-                  className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
-                  onClick={() => setDictionaryView('table')}
-                  title="Table view"
-                >
-                  📋
-                </button>
-                <button
-                  className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
-                  onClick={() => setDictionaryView('grid')}
-                  title="Grid view"
-                >
-                  ⊞
-                </button>
-              </div>
+              {!isSmall && (
+                <div className="view-toggle">
+                  <button
+                    className={`view-btn ${dictionaryView === 'table' ? 'active' : ''}`}
+                    onClick={() => setDictionaryView('table')}
+                    title="Table view"
+                  >
+                    📋
+                  </button>
+                  <button
+                    className={`view-btn ${dictionaryView === 'grid' ? 'active' : ''}`}
+                    onClick={() => setDictionaryView('grid')}
+                    title="Grid view"
+                  >
+                    ⊞
+                  </button>
+                </div>
+              )}
               <div className="more-menu" ref={moreRef}>
                 <button
                   className="btn btn--ghost btn--sm"
@@ -648,28 +753,6 @@ export default function App() {
                 </button>
                 {moreOpen && (
                   <div className="dropdown">
-                    {!isAuthed ? (
-                      <form
-                        className="dropdown-form"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const formData = new FormData(e.currentTarget);
-                          void signIn("resend", formData);
-                          setMoreOpen(false);
-                        }}
-                      >
-                        <input name="email" type="email" placeholder="Email" required />
-                        <button className="dropdown-item" type="submit">Send sign-in link</button>
-                      </form>
-                    ) : (
-                      <button
-                        className="dropdown-item"
-                        onClick={() => { setMoreOpen(false); void signOut(); }}
-                        title="Sign out"
-                      >
-                        ↪ Sign out
-                      </button>
-                    )}
                     <button
                       className="dropdown-item destructive"
                       onClick={() => {
@@ -736,7 +819,7 @@ export default function App() {
                     Clear Selection
                   </button>
                 </div>
-              ) : dictionaryView === 'grid' && filteredWords.length > 0 && (
+              ) : effectiveDictionaryView === 'grid' && filteredWords.length > 0 && (
                 <div className="bulk-selection">
                 </div>
               )}
@@ -745,7 +828,7 @@ export default function App() {
 
 
 
-            {dictionaryView === 'table' ? (
+            {effectiveDictionaryView === 'table' ? (
               <div className="tableWrap">
                 <table>
                   <thead>
@@ -788,13 +871,12 @@ export default function App() {
                         <td>{msFmt(w.stats.typicalTimeMs)}</td>
                         <td>{msFmt(w.stats.highScoreMs)}</td>
                         <td>
-                          <button
-                            className="btn btn--ghost btn--sm"
-                            onClick={() => resetStats({ wordId: w._id } as any)}
-                            title="Reset statistics for this word"
-                          >
-                            🗑️
-                          </button>
+                          <WordActionsMenu
+                            wordId={w._id}
+                            wordText={w.text}
+                            onResetStats={handleResetWordStats}
+                            onDeleteWord={handleDeleteWord}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -806,13 +888,16 @@ export default function App() {
                 words={filteredWords}
                 selectedWordIds={selectedWordIds}
                 onToggleSelection={toggleWordSelection}
-                onReset={(wordId) => resetStats({ wordId } as any)}
+                onReset={handleResetWordStats}
+                onDelete={handleDeleteWord}
                 maxTimeMs={3000}
+                onAddWord={() => setShowAddWordModal(true)}
+                dictionaryName={activeDictionary?.name}
               />
             )}
           </div>
         </div>
-
+        )}
 
       </div>
 
@@ -837,6 +922,14 @@ export default function App() {
         repsPerWord={roundState?.round?.repsPerWord || 0}
         maxTimeMs={roundState?.round?.maxTimeMs}
       />
+
+      {/* Mobile sign-in modal */}
+      {!isAuthed && (
+        <SignInModal
+          isOpen={showSignInModal}
+          onClose={() => setShowSignInModal(false)}
+        />
+      )}
 
 
       <AddWordModal
