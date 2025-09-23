@@ -933,8 +933,7 @@ tbody td { padding-top: calc(var(--space-3) + 2px); padding-bottom: calc(var(--s
   }
 
   .user-display {
-    font-size: 12px;
-    max-width: 120px;
+    display: none; /* Hide user email/ID on mobile */
   }
 }
 
