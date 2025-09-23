@@ -163,3 +163,66 @@
   .modal-actions { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
   .modal-actions .btn { width: 100%; }
 }
+
+/* --- Sign-in modal specific styles --- */
+.signin-benefits {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+}
+.signin-benefits h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--panel-text);
+}
+.benefits-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.benefits-list li {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--panel-text);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.benefits-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* Email sent confirmation styles */
+.email-sent-content {
+  text-align: center;
+  padding: 8px 0;
+}
+.email-sent-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.email-sent-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--panel-text);
+}
+.email-sent-content p {
+  margin: 0 0 12px 0;
+  color: var(--panel-text);
+  line-height: 1.5;
+}
+.email-sent-note {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 6px;
+}
+.email-sent-note small {
+  color: var(--muted);
+  line-height: 1.4;
+}

@@ -24,9 +24,10 @@ function msFmt(ms: number | null | undefined) {
 
 export default function App() {
   // Auth and device identity
-  const { signIn, signOut } = useAuthActions();
+  const { signOut } = useAuthActions();
   const authToken = useAuthToken();
   const isAuthed = !!authToken;
+  const currentUser = useQuery(api.users.currentUser);
   const [deviceId] = useState<string>(() => {
     try {
       let id = localStorage.getItem("deviceId");
@@ -580,43 +581,28 @@ export default function App() {
           {/* Auth controls */}
           <div className="auth-controls">
             {!isAuthed ? (
-              <>
-                <form
-                  className="auth-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    void signIn("resend", formData);
-                  }}
-                >
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="Email"
-                    required
-                    className="auth-input"
-                  />
-                  <button className="btn btn--ghost btn--sm" type="submit">
-                    Sign In
-                  </button>
-                </form>
-                {/* Mobile-only sign in CTA */}
-                <button
-                  className="btn btn--ghost btn--sm auth-cta-mobile"
-                  type="button"
-                  onClick={() => setShowSignInModal(true)}
-                >
-                  Sign In
-                </button>
-              </>
-            ) : (
               <button
                 className="btn btn--ghost btn--sm"
-                onClick={() => void signOut()}
-                title="Sign out"
+                type="button"
+                onClick={() => setShowSignInModal(true)}
               >
-                Sign Out
+                Sign In
               </button>
+            ) : (
+              <div className="auth-user-info">
+                {currentUser && (
+                  <span className="user-display" title={`Signed in as ${currentUser.email || currentUser._id}`}>
+                    👤 {currentUser.email || `User ${currentUser._id.slice(-6)}`}
+                  </span>
+                )}
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => void signOut()}
+                  title="Sign out"
+                >
+                  Sign Out
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -933,13 +919,11 @@ export default function App() {
         maxTimeMs={roundState?.round?.maxTimeMs}
       />
 
-      {/* Mobile sign-in modal */}
-      {!isAuthed && (
-        <SignInModal
-          isOpen={showSignInModal}
-          onClose={() => setShowSignInModal(false)}
-        />
-      )}
+      {/* Sign-in modal */}
+      <SignInModal
+        isOpen={showSignInModal && !isAuthed}
+        onClose={() => setShowSignInModal(false)}
+      />
 
 
       <AddWordModal

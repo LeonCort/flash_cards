@@ -905,50 +905,40 @@ tbody td { padding-top: calc(var(--space-3) + 2px); padding-bottom: calc(var(--s
   gap: 8px;
 }
 
-.auth-form {
+/* Auth user info */
+.auth-user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.auth-input {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--input-bg);
-  color: var(--panel-text);
-  font-size: 16px;
-  width: 160px;
+.user-display {
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
-.auth-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-alpha);
-}
-
-/* Responsive auth controls */
+/* Responsive header controls */
 @media (max-width: 768px) {
-  /* Hide inline auth form and show compact CTA that opens a modal */
-  .auth-form { display: none; }
-  .auth-cta-mobile { display: inline-flex; }
-
-  .auth-input {
-    width: 120px;
-    font-size: 16px;
-    padding: 4px 8px;
-  }
-
   .header-controls {
     flex-wrap: wrap;
     gap: var(--space-1);
   }
+
+  .auth-user-info {
+    gap: 8px;
+  }
+
+  .user-display {
+    font-size: 12px;
+    max-width: 120px;
+  }
 }
 
-/* Hide mobile CTA on larger screens only */
-@media (min-width: 769px) {
-  .auth-cta-mobile { display: none; }
-}
+
 
 /* Table responsiveness */
 @media (max-width: 860px) {
